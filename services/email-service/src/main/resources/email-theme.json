@@ -1,0 +1,80 @@
+{
+  "identity": {
+    "light": {
+      "primary": "#0B6E5D",
+      "onPrimary": "#FFFFFF",
+      "primaryContainer": "#C5E5DE",
+      "onPrimaryContainer": "#095246",
+      "secondary": "#43655D",
+      "tertiary": "#8A5300",
+      "tertiaryContainer": "#FDF0D8",
+      "onTertiaryContainer": "#4A2900",
+      "background": "#F5F6F3",
+      "onSurface": "#14213D",
+      "onSurfaceVariant": "#5B6474",
+      "surfaceContainerLowest": "#FFFFFF",
+      "surfaceContainerLow": "#F4F5F2",
+      "surfaceContainer": "#F2F3F0",
+      "surfaceContainerHigh": "#ECEEEA",
+      "outline": "#848B97",
+      "outlineVariant": "#C1C5CB",
+      "error": "#D41936",
+      "errorContainer": "#F8C8CE",
+      "onErrorContainer": "#410008"
+    },
+    "dark": {
+      "primary": "#126D5D",
+      "onPrimary": "#FFFFFF",
+      "primaryContainer": "#05463B",
+      "onPrimaryContainer": "#B8F3E6",
+      "secondary": "#7FD3C0",
+      "tertiary": "#FFB84D",
+      "tertiaryContainer": "#6B3E00",
+      "onTertiaryContainer": "#FFEAC7",
+      "background": "#0C0E11",
+      "onSurface": "#E5E7EB",
+      "onSurfaceVariant": "#C5C9D0",
+      "surfaceContainerLowest": "#06080A",
+      "surfaceContainerLow": "#101216",
+      "surfaceContainer": "#14161A",
+      "surfaceContainerHigh": "#1A1D21",
+      "outline": "#8D95A3",
+      "outlineVariant": "#414754",
+      "error": "#B00020",
+      "errorContainer": "#930018",
+      "onErrorContainer": "#FFDADD"
+    }
+  },
+  "email": {
+    "light": {
+      "pageBackground": "{background}",
+      "containerBackground": "{surfaceContainerLowest}",
+      "brand": "{primary}",
+      "title": "{onSurface}",
+      "bodyText": "{onSurface}",
+      "mutedText": "{onSurfaceVariant}",
+      "divider": "{outlineVariant}"
+    },
+    "dark": {
+      "pageBackground": "{background}",
+      "containerBackground": "{surfaceContainer}",
+      "brand": "{secondary}",
+      "title": "{onSurface}",
+      "bodyText": "{onSurface}",
+      "mutedText": "{onSurfaceVariant}",
+      "divider": "{outlineVariant}"
+    }
+  },
+  "templates": {
+    "recovery": {
+      "light": {
+        "codeBackground": "{primaryContainer}",
+        "codeText": "{onPrimaryContainer}"
+      },
+      "dark": {
+        "codeBackground": "{primaryContainer}",
+        "codeText": "{onPrimaryContainer}"
+      }
+    }
+  }
+}

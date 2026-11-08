@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: eureka-server
+  security:
+    user:
+      name: admin
+      password: test-only-eureka
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false

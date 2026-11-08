@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: email-service
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: test@example.com
+    password: test-only-password
+
+eureka:
+  client:
+    enabled: false
+
+pagoflex:
+  security:
+    internal-api-key: test-only-internal-api-key

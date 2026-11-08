@@ -1,0 +1,63 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: usuarios-service
+
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 3s
+      repositories:
+        enabled: false
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/${USUARIOS_DB}
+    username: ${USUARIOS_USER}
+    password: ${USUARIOS_PASS}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+pagoflex:
+  security:
+    internal-api-key: ${INTERNAL_API_KEY}
+    jwt:
+      secret: ${JWT_SECRET}
+      expiration: ${JWT_EXPIRATION}
+    public-paths:
+      - /api/v1/auth/login
+      - /api/v1/auth/register
+      - /api/v1/auth/recovery
+      - /api/v1/auth/recovery/verify
+      - /api/v1/auth/recovery/resend
+      - /api/v1/auth/recovery/reset
+      - /actuator/health
+
+verification:
+  code:
+    expiration-minutes: ${RECOVERY_CODE_EXPIRATION_MINUTES}
+  reset:
+    expiration-minutes: ${RESET_TOKEN_EXPIRATION_MINUTES}
+
+email-service:
+  api:
+    base-url: http://email-service:8082/api/v1/email/internal
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://admin:${EUREKA_ADMIN_PASSWD}@eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

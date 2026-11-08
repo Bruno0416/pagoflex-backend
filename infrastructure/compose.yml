@@ -1,0 +1,115 @@
+name: pagoflex-backend
+
+# --- plantilla reutilizable para health checks ---
+x-healthcheck-template: &default-healthcheck
+  test: ["CMD-SHELL", "curl --fail --silent --show-error --connect-timeout 2 --max-time 5 http://127.0.0.1:$${PORT:-8761}/actuator/health || exit 1"]
+  interval: 30s
+  timeout: 7s
+  retries: 3
+  start_period: 40s
+
+services:
+  # ---- MYSQL ----
+  mysql:
+    image: mysql:8.4.11
+    command: [ "--partial-revokes=ON" ]
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks: [ backend ]
+    healthcheck:
+      test: [ CMD-SHELL, 'mysqladmin ping --host=127.0.0.1 --silent' ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---- REDIS ----
+  redis:
+    image: redis:8.8.3-alpine
+    command: [ redis-server, --save, '', --appendonly, 'no' ]
+    networks: [ backend ]
+    healthcheck:
+      test: [ CMD, redis-cli, ping ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  # ---- GATEWAY ----
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: services/api-gateway/Dockerfile
+    env_file: .env
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      usuarios-service:
+        condition: service_healthy
+      email-service:
+        condition: service_healthy
+    environment:
+      - PORT=8080
+    healthcheck:
+      <<: *default-healthcheck
+    networks: [ backend ]
+    ports: [ '8080:8080' ]
+
+  # ---- EUREKA ----
+  eureka-server:
+    build:
+      context: ..
+      dockerfile: services/eureka-server/Dockerfile
+    env_file: .env
+    environment:
+      - PORT=8761
+    healthcheck:
+      <<: *default-healthcheck
+    networks: [ backend ]
+    ports: [ '127.0.0.1:8761:8761' ]
+
+  # ---- USUARIOS ----
+  usuarios-service:
+    build:
+      context: ..
+      dockerfile: services/usuarios-service/Dockerfile
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - PORT=8081
+    healthcheck:
+      <<: *default-healthcheck
+    networks: [ backend ]
+
+  # ---- EMAIL ----
+  email-service:
+    build:
+      context: ..
+      dockerfile: services/email-service/Dockerfile
+    env_file: .env
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - PORT=8082
+    healthcheck:
+      <<: *default-healthcheck
+    networks: [ backend ]
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  mysql-data:

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <title>Recuperación de contraseña · PagoFlex</title>
+    <style type="text/css">
+        body {
+            margin: 0;
+            padding: 0;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+
+        table {
+            mso-table-lspace: 0;
+            mso-table-rspace: 0;
+        }
+
+        @media only screen and (max-width: 620px) {
+            .pf-pad {
+                padding-left: 24px !important;
+                padding-right: 24px !important;
+            }
+
+            .pf-title {
+                font-size: 26px !important;
+                line-height: 32px !important;
+            }
+
+            .pf-code {
+                font-size: 32px !important;
+                letter-spacing: 6px !important;
+            }
+        }
+    </style>
+    <style type="text/css" th:inline="css">
+        @media (prefers-color-scheme: dark) {
+            .pf-container {
+                background-color: [(${theme.dark.containerBackground}) ] !important;
+            }
+
+            .pf-brand {
+                color: [(${theme.dark.brand}) ] !important;
+            }
+
+            .pf-title, .pf-text {
+                color: [(${theme.dark.bodyText}) ] !important;
+            }
+
+            .pf-muted {
+                color: [(${theme.dark.mutedText}) ] !important;
+            }
+
+            .pf-code {
+                background-color: [(${theme.dark.codeBackground}) ] !important;
+                color: [(${theme.dark.codeText}) ] !important;
+            }
+        }
+    </style>
+</head>
+<body style="margin:0;padding:0;">
+
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;opacity:0;">
+    Tu código de recuperación de PagoFlex
+</div>
+
+<!-- sin color de fondo en la página: el cliente de correo aporta el suyo (claro/oscuro) -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="width:100%;border-collapse:collapse;">
+    <tr>
+        <td align="center" style="padding:24px 12px;">
+            <!--[if mso]>
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center">
+                <tr>
+                    <td><![endif]-->
+
+            <!-- tarjeta principal -->
+            <table role="presentation" class="pf-container" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   th:style="|width:100%;max-width:600px;border-collapse:separate;border-radius:32px;background-color:${theme.light.containerBackground};|"
+                   th:attr="bgcolor=${theme.light.containerBackground}">
+
+                <!-- marca -->
+                <tr>
+                    <td class="pf-pad pf-brand"
+                        th:style="|padding:36px 40px 0 40px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:24px;line-height:30px;font-weight:700;letter-spacing:-0.5px;color:${theme.light.brand};|">
+                        PagoFlex
+                    </td>
+                </tr>
+
+                <!-- contenido -->
+                <tr>
+                    <td class="pf-pad pf-title"
+                        th:style="|padding:32px 40px 0 40px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:30px;line-height:36px;font-weight:700;color:${theme.light.title};|">
+                        Recupera tu contraseña
+                    </td>
+                </tr>
+                <tr>
+                    <td class="pf-pad pf-text"
+                        th:style="|padding:12px 40px 0 40px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:24px;color:${theme.light.bodyText};|">
+                        Ingresa este código en PagoFlex para restablecer tu contraseña:
+                    </td>
+                </tr>
+                <tr>
+                    <td class="pf-pad" style="padding:24px 40px 0 40px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                               style="border-collapse:separate;">
+                            <tr>
+                                <td class="pf-code" align="center"
+                                    th:style="|padding:30px 16px 30px 24px;border-radius:28px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:40px;line-height:46px;font-weight:700;letter-spacing:8px;text-align:center;background-color:${theme.light.codeBackground};color:${theme.light.codeText};|"
+                                    th:attr="bgcolor=${theme.light.codeBackground}"
+                                    th:text="${code}">000000
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="pf-pad pf-muted"
+                        th:style="|padding:24px 40px 40px 40px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:22px;color:${theme.light.mutedText};|">
+                        Si no solicitaste este cambio, ignora este correo.
+                    </td>
+                </tr>
+            </table>
+
+            <!-- pie, fuera de la tarjeta -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="width:100%;max-width:600px;">
+                <tr>
+                    <td class="pf-pad pf-muted"
+                        th:style="|padding:20px 40px 8px 40px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:19px;color:${theme.light.mutedText};|">
+                        Recibiste este correo porque se solicitó recuperar la contraseña de tu cuenta de PagoFlex.
+                    </td>
+                </tr>
+            </table>
+            <!--[if mso]></td></tr></table><![endif]-->
+        </td>
+    </tr>
+</table>
+</body>
+</html>

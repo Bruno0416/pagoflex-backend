@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: usuarios-service
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  datasource:
+    url: jdbc:h2:mem:auth;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ''
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+eureka:
+  client:
+    enabled: false
+
+pagoflex:
+  security:
+    internal-api-key: test-only-internal-api-key
+    jwt:
+      secret: test-only-jwt-secret-that-has-at-least-32-bytes
+      expiration: 15m
+    public-paths:
+      - /api/v1/auth/login
+      - /api/v1/auth/register
+      - /api/v1/auth/recovery
+      - /api/v1/auth/recovery/verify
+      - /api/v1/auth/recovery/resend
+      - /api/v1/auth/recovery/reset
+      - /actuator/health
+
+email-service:
+  api:
+    base-url: http://localhost:8082/api/v1/email/internal
+
+verification:
+  code:
+    expiration-minutes: 10
+  reset:
+    expiration-minutes: 10

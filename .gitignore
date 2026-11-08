@@ -1,0 +1,13 @@
+**/target/
+.idea/
+**/.settings/
+**/.project
+**/.classpath
+**/.factorypath
+*.iml
+*.class
+*.log
+.env
+infrastructure/.env
+__pycache__/
+*.pyc
