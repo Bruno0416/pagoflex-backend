@@ -122,6 +122,8 @@ services:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
+      usuarios-service:
+        condition: service_healthy
     environment:
       - PORT=8083
     healthcheck:
@@ -138,6 +140,8 @@ services:
       mysql:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      usuarios-service:
         condition: service_healthy
       cobranza-service:
         condition: service_healthy

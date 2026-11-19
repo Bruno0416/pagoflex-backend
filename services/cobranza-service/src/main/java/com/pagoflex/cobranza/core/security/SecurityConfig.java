@@ -27,11 +27,13 @@ public class SecurityConfig {
         // 1. desactivar csrf y sesiones
         http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 2. rutas públicas, internas con clave y el resto solo para ejecutivos
+                // 2. rutas públicas, internas con clave y cada perfil con las suyas
                 .authorizeHttpRequests(auth -> auth.requestMatchers(publicPaths.matchers()).permitAll()
                         .requestMatchers(InternalApiKeyFilter.INTERNAL_PATHS).permitAll()
-                        .requestMatchers("/api/v1/cobranza/mis-compromisos").hasRole("USUARIO_FINAL")
-                        .requestMatchers("/api/v1/cobranza/**").hasRole("EJECUTIVO")
+                        .requestMatchers("/api/v1/compromisos/me", "/api/v1/compromisos/me/**",
+                                "/api/v1/pagos/me", "/api/v1/comprobantes/*",
+                                "/api/v1/anulaciones/me", "/api/v1/cumplimiento/me").hasRole("USUARIO_FINAL")
+                        .requestMatchers("/api/v1/empresas/me", "/api/v1/empresas/me/**").hasRole("EJECUTIVO")
                         .anyRequest().denyAll())
                 // 3. validar la clave interna antes que el jwt
                 .addFilterBefore(new InternalApiKeyFilter(internalKey), BearerTokenAuthenticationFilter.class)

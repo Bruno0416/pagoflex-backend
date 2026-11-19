@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -25,15 +26,19 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             PublicPathsProperties publicPaths,
-            @Value("${pagoflex.security.jwt.secret}") String secret) throws Exception {
+            @Value("${pagoflex.security.jwt.secret}") String secret,
+            @Value("${pagoflex.security.internal-api-key}") String internalKey) throws Exception {
         // 1. desactivar csrf y sesiones
         http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
                 // 2. permitir solo las rutas declaradas en yaml
                 .authorizeHttpRequests(auth -> auth.requestMatchers(publicPaths.matchers()).permitAll()
+                        .requestMatchers(InternalApiKeyFilter.INTERNAL_PATHS).permitAll()
                         .anyRequest().authenticated())
-                // 3. validar el jwt en las rutas privadas
+                // 3. rutas internas solo con la clave compartida entre servicios
+                .addFilterBefore(new InternalApiKeyFilter(internalKey), BearerTokenAuthenticationFilter.class)
+                // 4. validar el jwt en las rutas privadas
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt
                         .decoder(JwtSupport.accessDecoder(secret))
                         .jwtAuthenticationConverter(JwtSupport.authenticationConverter())));

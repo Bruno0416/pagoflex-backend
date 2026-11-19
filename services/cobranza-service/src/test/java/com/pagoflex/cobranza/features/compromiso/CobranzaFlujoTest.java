@@ -1,14 +1,18 @@
 package com.pagoflex.cobranza.features.compromiso;
 
+import com.pagoflex.cobranza.core.client.UsuariosServiceClient;
 import com.pagoflex.cobranza.features.compromiso.entity.Compromiso;
 import com.pagoflex.cobranza.features.compromiso.entity.EstadoCompromiso;
-import com.pagoflex.cobranza.features.compromiso.entity.Persona;
+import com.pagoflex.cobranza.features.compromiso.repository.AnulacionRepository;
+import com.pagoflex.cobranza.features.compromiso.repository.ComprobanteRepository;
 import com.pagoflex.cobranza.features.compromiso.repository.CompromisoRepository;
-import com.pagoflex.cobranza.features.compromiso.repository.PersonaRepository;
-import com.pagoflex.cobranza.features.empresa.entity.EmpresaCliente;
+import com.pagoflex.cobranza.features.compromiso.repository.PagoRepository;
+import com.pagoflex.cobranza.features.empresa.repository.EjecutivoEmpresaRepository;
 import com.pagoflex.cobranza.features.empresa.repository.EmpresaClienteRepository;
+import com.pagoflex.cobranza.features.empresa.service.EjecutivoService;
 import com.pagoflex.cobranza.support.RelojFijo;
-import com.pagoflex.cobranza.support.TokensPrueba;
+import com.pagoflex.contracts.usuarios.CrearPersonaInterna;
+import com.pagoflex.contracts.usuarios.PersonaInterna;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,261 +20,363 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
+import static com.pagoflex.cobranza.support.TokensPrueba.CLAVE_INTERNA;
+import static com.pagoflex.cobranza.support.TokensPrueba.bearer;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/// Flujo del ejecutivo de punta a punta sobre una base H2, con la fecha fija del caso
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(RelojFijo.class)
-@Transactional
 class CobranzaFlujoTest {
-    private static final String CLAVE = "X-Internal-Api-Key";
+    private static final UUID EJ_ALTOS = UUID.randomUUID();
+    private static final UUID EJ_CREDITO = UUID.randomUUID();
+    private static final UUID EJ_SIN_EMPRESA = UUID.randomUUID();
+    private static final UUID U_CAMILA = UUID.randomUUID();
+    private static final UUID U_LUIS = UUID.randomUUID();
+    private static final PersonaInterna CAMILA = new PersonaInterna(UUID.randomUUID(), "15834207-3",
+            "Camila Andrea", "Rojas Peña", "crojas@correo.ejemplo", "+56 9 0000 0101", U_CAMILA);
+    private static final PersonaInterna LUIS = new PersonaInterna(UUID.randomUUID(), "12476318-5",
+            "Luis Alberto", "Muñoz Tapia", "lmunoz@correo.ejemplo", "+56 9 0000 0102", U_LUIS);
 
     @Autowired
     private MockMvc mvc;
     @Autowired
     private CompromisoRepository compromisoRepo;
     @Autowired
-    private PersonaRepository personaRepo;
+    private PagoRepository pagoRepo;
+    @Autowired
+    private ComprobanteRepository comprobanteRepo;
+    @Autowired
+    private AnulacionRepository anulacionRepo;
+    @Autowired
+    private EjecutivoEmpresaRepository ejecutivoRepo;
     @Autowired
     private EmpresaClienteRepository empresaRepo;
+    @Autowired
+    private EjecutivoService ejecutivoService;
 
-    private final UUID paula = UUID.randomUUID();
-    private final UUID sebastian = UUID.randomUUID();
-    private String tokenPaula;
-    private String tokenSebastian;
+    @MockitoBean
+    private UsuariosServiceClient usuarios;
 
     @BeforeEach
-    void asignarEmpresas() throws Exception {
-        // 1. paula es ejecutiva de altos del maipo y sebastián del instituto
-        asignar("psaavedra@altosmaipo.ejemplo", "EC-01");
-        asignar("snunez@itcordillera.ejemplo", "EC-07");
-        tokenPaula = TokensPrueba.bearer(paula, "psaavedra@altosmaipo.ejemplo", "EJECUTIVO");
-        tokenSebastian = TokensPrueba.bearer(sebastian, "snunez@itcordillera.ejemplo", "EJECUTIVO");
+    void preparar() {
+        comprobanteRepo.deleteAll();
+        pagoRepo.deleteAll();
+        anulacionRepo.deleteAll();
+        compromisoRepo.deleteAll();
+        ejecutivoRepo.deleteAll();
+        ejecutivoService.asignar(EJ_ALTOS, "EC-01");
+        ejecutivoService.asignar(EJ_CREDITO, "EC-03");
+
+        for (PersonaInterna p : new PersonaInterna[]{CAMILA, LUIS}) {
+            when(usuarios.porUsuario(p.usuarioId())).thenReturn(Optional.of(p));
+            when(usuarios.porId(p.id())).thenReturn(Optional.of(p));
+            when(usuarios.porRut(p.rut())).thenReturn(Optional.of(p));
+        }
     }
 
     // ---------- seguridad ----------
     @Test
-    void cobranzaRequiresExecutiveRole() throws Exception {
-        mvc.perform(get("/api/v1/cobranza/resumen").param("mes", "2026-10"))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/cobranza/resumen").param("mes", "2026-10")
-                        .header("Authorization", TokensPrueba.bearer(UUID.randomUUID(), "crojas@correo.ejemplo", "USUARIO_FINAL")))
+    void cadaPerfilSoloEntraASusRutas() throws Exception {
+        mvc.perform(get("/api/v1/empresas/me")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/empresas/me").header("Authorization", camila())).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/compromisos/me").header("Authorization", altos())).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/empresas/me").header("Authorization", bearer(EJ_SIN_EMPRESA, "x@y.cl", "EJECUTIVO")))
                 .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/internal/compromisos/CP-2026-0001/reportabilidad")).andExpect(status().isUnauthorized());
     }
 
+    // ---------- ejecutivo ----------
     @Test
-    void internalRoutesRequireTheSharedKey() throws Exception {
-        mvc.perform(get("/api/v1/internal/cobranza/compromisos/CP-2026-0001"))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/internal/cobranza/compromisos/CP-2026-0001").header(CLAVE, "otra-clave"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void executiveWithoutCompanyIsRejected() throws Exception {
-        mvc.perform(get("/api/v1/cobranza/resumen").param("mes", "2026-10")
-                        .header("Authorization", TokensPrueba.bearer(UUID.randomUUID(), "otro@ejemplo.cl", "EJECUTIVO")))
-                .andExpect(status().isForbidden());
-    }
-
-    // ---------- registro RN-20 ----------
-    @Test
-    void registerNewPersonCreatesPendingCommitment() throws Exception {
-        registrar(tokenPaula, compromisoNuevo("Gastos comunes noviembre", 16))
+    void ejecutivoRegistraConPersonaExistenteYNoDuplica() throws Exception {
+        String cuerpo = registro("15.834.207-3", "Cuota pie departamento", 16, 36, "2026-10-30");
+        mvc.perform(post("/api/v1/empresas/me/compromisos").header("Authorization", altos())
+                        .contentType(MediaType.APPLICATION_JSON).content(cuerpo))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.folio").value("CP-2026-0001"))
                 .andExpect(jsonPath("$.estado").value("PENDIENTE"))
-                .andExpect(jsonPath("$.persona.rut").value("12476318-5"))
-                .andExpect(jsonPath("$.empresa").value("Altos del Maipo"))
+                .andExpect(jsonPath("$.persona.nombre").value("Camila Andrea Rojas Peña"))
                 .andExpect(jsonPath("$.registradoPor").value("psaavedra@altosmaipo.ejemplo"));
-    }
 
-    @Test
-    void newPersonNeedsBasicData() throws Exception {
-        registrar(tokenPaula, """
-                {"rut":"12.476.318-5","concepto":"Gastos comunes","monto":45000,"fechaVencimiento":"2026-11-30"}
-                """).andExpect(status().isBadRequest());
-    }
+        mvc.perform(post("/api/v1/empresas/me/compromisos").header("Authorization", altos())
+                        .contentType(MediaType.APPLICATION_JSON).content(cuerpo.replace("Cuota pie departamento", "CUOTA PIE departamento")))
+                .andExpect(status().isConflict());
 
-    @Test
-    void sameCommitmentCannotBeRegisteredTwice() throws Exception {
-        registrar(tokenPaula, compromisoNuevo("Cuota pie", 16)).andExpect(status().isCreated());
-        registrar(tokenPaula, compromisoNuevo("cuota PIE", 16)).andExpect(status().isConflict());
-        registrar(tokenPaula, compromisoNuevo("Cuota pie", 17)).andExpect(status().isCreated());
-    }
-
-    @Test
-    void invalidDataIsRejected() throws Exception {
-        registrar(tokenPaula, compromisoNuevo("Cuota", 16).replace("12.476.318-5", "12.345.678-9"))
-                .andExpect(status().isBadRequest());
-        registrar(tokenPaula, compromisoNuevo("Cuota", 16).replace("2026-11-30", "2026-10-01"))
-                .andExpect(status().isBadRequest());
-        registrar(tokenPaula, compromisoNuevo("Cuota", 40)).andExpect(status().isBadRequest());
-        registrar(tokenPaula, compromisoNuevo("Cuota", 16).replace("45000", "0")).andExpect(status().isBadRequest());
-    }
-
-    // ---------- visibilidad RN-22 ----------
-    @Test
-    void executiveCannotSeeAnotherCompany() throws Exception {
-        registrar(tokenPaula, compromisoNuevo("Cuota pie", 16)).andExpect(status().isCreated());
-
-        mvc.perform(get("/api/v1/cobranza/compromisos/CP-2026-0001").header("Authorization", tokenSebastian))
+        // otra empresa no lo ve RN-22
+        mvc.perform(get("/api/v1/empresas/me/compromisos/CP-2026-0001").header("Authorization", credito()))
                 .andExpect(status().isNotFound());
-        mvc.perform(post("/api/v1/cobranza/compromisos/CP-2026-0001/anulacion").header("Authorization", tokenSebastian)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"motivo\":\"REPACTACION\"}"))
-                .andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/cobranza/compromisos").param("mes", "2026-11").header("Authorization", tokenSebastian))
-                .andExpect(jsonPath("$.length()").value(0));
+        verify(usuarios, never()).crear(any());
     }
 
-    // ---------- resumen RN-24 ----------
     @Test
-    void monthlySummaryCountsByStateAndRate() throws Exception {
-        EmpresaCliente altos = empresaRepo.findByCodigo("EC-01").orElseThrow();
-        Persona persona = persona();
-        for (int i = 1; i <= 3; i++) guardar(altos, persona, "Pagado " + i, EstadoCompromiso.PAGADO, LocalDate.of(2026, 9, 10));
-        guardar(altos, persona, "Anulado", EstadoCompromiso.ANULADO, LocalDate.of(2026, 9, 12));
-        guardar(altos, persona, "Atrasado", EstadoCompromiso.PENDIENTE, LocalDate.of(2026, 9, 30));
+    void personaNuevaPideSusDatosYSeCreaEnUsuarios() throws Exception {
+        when(usuarios.porRut("20111222-2")).thenReturn(Optional.empty());
+        when(usuarios.crear(any(CrearPersonaInterna.class))).thenAnswer(i -> {
+            CrearPersonaInterna r = i.getArgument(0);
+            return new PersonaInterna(UUID.randomUUID(), r.rut(), r.nombres(), r.apellidos(), r.correo(), r.telefono(), null);
+        });
 
-        mvc.perform(get("/api/v1/cobranza/resumen").param("mes", "2026-09").header("Authorization", tokenPaula))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCompromisos").value(5))
-                .andExpect(jsonPath("$.pagados").value(3))
-                .andExpect(jsonPath("$.anulados").value(1))
-                .andExpect(jsonPath("$.vencidos").value(1))
-                .andExpect(jsonPath("$.tasaCobranza").value(75.0))
-                .andExpect(jsonPath("$.recaudado").value(300_000));
+        mvc.perform(post("/api/v1/empresas/me/compromisos").header("Authorization", altos())
+                        .contentType(MediaType.APPLICATION_JSON).content(registro("20.111.222-2", "Arriendo", null, null, "2026-10-30")))
+                .andExpect(status().isBadRequest());
 
-        mvc.perform(get("/api/v1/cobranza/compromisos").param("mes", "2026-09").param("estado", "VENCIDO")
-                        .header("Authorization", tokenPaula))
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].recargo").value(8_500))
-                .andExpect(jsonPath("$[0].diasAtraso").value(6));
+        String conDatos = """
+                {"rut":"20.111.222-2","nombres":"Ana","apellidos":"Pérez","correo":"ana@correo.ejemplo",
+                 "telefono":"+56 9 1111 2222","concepto":"Arriendo","monto":250000,"fechaVencimiento":"2026-10-30"}
+                """;
+        mvc.perform(post("/api/v1/empresas/me/compromisos").header("Authorization", altos())
+                        .contentType(MediaType.APPLICATION_JSON).content(conDatos))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.persona.rut").value("20111222-2"));
+        verify(usuarios).crear(any(CrearPersonaInterna.class));
     }
 
-    // ---------- anulación RN-21 ----------
     @Test
-    void cancellationRules() throws Exception {
-        EmpresaCliente altos = empresaRepo.findByCodigo("EC-01").orElseThrow();
-        Compromiso pagado = guardar(altos, persona(), "Pagado", EstadoCompromiso.PAGADO, LocalDate.of(2026, 9, 10));
-        registrar(tokenPaula, compromisoNuevo("Cuota pie", 16)).andExpect(status().isCreated());
-
-        anular(pagado.getFolio(), "{\"motivo\":\"ERROR_REGISTRO\"}").andExpect(status().isConflict());
-        anular("CP-2026-0001", "{\"motivo\":\"OTRO\",\"comentario\":\"  \"}").andExpect(status().isConflict());
-        anular("CP-2026-0001", "{\"motivo\":\"REPACTACION\"}")
+    void validaRutFechaYCuotas() throws Exception {
+        mvc.perform(post("/api/v1/empresas/me/compromisos").header("Authorization", altos())
+                        .contentType(MediaType.APPLICATION_JSON).content(registro("12345678-9", "x", null, null, "2026-10-30")))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/v1/empresas/me/compromisos").header("Authorization", altos())
+                        .contentType(MediaType.APPLICATION_JSON).content(registro("15834207-3", "x", null, null, "2026-10-01")))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/v1/empresas/me/compromisos").header("Authorization", altos())
+                        .contentType(MediaType.APPLICATION_JSON).content(registro("15834207-3", "x", 5, 3, "2026-10-30")))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/empresas/me/personas/15.834.207-3").header("Authorization", altos()))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.correo").value("crojas@correo.ejemplo"));
+    }
+
+    @Test
+    void resumenYAnulacion() throws Exception {
+        compromiso("CP-2026-0101", CAMILA, "EC-01", "Cuota", 1, 3, 100_000, "2026-09-10", EstadoCompromiso.PAGADO);
+        compromiso("CP-2026-0102", LUIS, "EC-01", "Cuota", 1, 3, 100_000, "2026-09-20", EstadoCompromiso.PENDIENTE);
+        compromiso("CP-2026-0103", LUIS, "EC-01", "Otro", null, null, 50_000, "2026-09-25", EstadoCompromiso.PENDIENTE);
+
+        mvc.perform(post("/api/v1/empresas/me/compromisos/CP-2026-0101/anulaciones").header("Authorization", altos())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"motivo\":\"ERROR_REGISTRO\"}"))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/api/v1/empresas/me/compromisos/CP-2026-0103/anulaciones").header("Authorization", altos())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"motivo\":\"OTRO\"}"))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/api/v1/empresas/me/compromisos/CP-2026-0103/anulaciones").header("Authorization", altos())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"motivo\":\"OTRO\",\"comentario\":\"duplicado\"}"))
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.estado").value("ANULADO"))
-                .andExpect(jsonPath("$.anulacion.motivo").value("REPACTACION"))
                 .andExpect(jsonPath("$.anulacion.ejecutivo").value("psaavedra@altosmaipo.ejemplo"));
-        anular("CP-2026-0001", "{\"motivo\":\"REPACTACION\"}").andExpect(status().isConflict());
-    }
 
-    // ---------- apoyo a las pantallas ----------
-    @Test
-    void executiveSeesHisCompanyAndFindsPeople() throws Exception {
-        mvc.perform(get("/api/v1/cobranza/empresa").header("Authorization", tokenPaula))
+        // 1 pagado de 3, menos 1 anulado: 50%; el pendiente de septiembre ya está vencido
+        mvc.perform(get("/api/v1/empresas/me/cobranza?mes=2026-09").header("Authorization", altos()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.codigo").value("EC-01"))
-                .andExpect(jsonPath("$.nombre").value("Altos del Maipo"));
-
-        mvc.perform(get("/api/v1/cobranza/personas/12.476.318-5").header("Authorization", tokenPaula))
-                .andExpect(status().isNotFound());
-        registrar(tokenPaula, compromisoNuevo("Cuota pie", 16)).andExpect(status().isCreated());
-        mvc.perform(get("/api/v1/cobranza/personas/12.476.318-5").header("Authorization", tokenPaula))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nombre").value("Luis Alberto Muñoz Tapia"))
-                .andExpect(jsonPath("$.correo").value("lmunoz@correo.ejemplo"));
-        mvc.perform(get("/api/v1/cobranza/personas/12.345.678-9").header("Authorization", tokenPaula))
-                .andExpect(status().isBadRequest());
+                .andExpect(jsonPath("$.totalCompromisos").value(3))
+                .andExpect(jsonPath("$.vencidos").value(1))
+                .andExpect(jsonPath("$.tasaCobranza").value(50.0));
+        mvc.perform(get("/api/v1/empresas/me/compromisos?mes=2026-09&estado=VENCIDO").header("Authorization", altos()))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].recargo").value(8_500));
     }
 
     // ---------- usuario final ----------
     @Test
-    void finalUserSeesOnlyHisCommitments() throws Exception {
-        EmpresaCliente altos = empresaRepo.findByCodigo("EC-01").orElseThrow();
-        guardar(altos, persona(), "Cuota de camila", EstadoCompromiso.PENDIENTE, LocalDate.of(2026, 10, 30));
-        registrar(tokenPaula, compromisoNuevo("Cuota de luis", 16)).andExpect(status().isCreated());
+    void usuarioSoloVeLoSuyo() throws Exception {
+        compromiso("CP-2026-0201", CAMILA, "EC-03", "Crédito", 1, 2, 80_000, "2026-10-25", EstadoCompromiso.PENDIENTE);
+        compromiso("CP-2026-0202", LUIS, "EC-01", "Cuota pie", 1, 36, 310_000, "2026-10-30", EstadoCompromiso.PENDIENTE);
 
-        String camila = TokensPrueba.bearer(UUID.randomUUID(), "CRojas@correo.ejemplo", "USUARIO_FINAL");
-        mvc.perform(get("/api/v1/cobranza/mis-compromisos").header("Authorization", camila))
+        mvc.perform(get("/api/v1/compromisos/me").header("Authorization", camila()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].concepto").value("Cuota de camila"))
-                .andExpect(jsonPath("$[0].empresa").value("Altos del Maipo"));
-
-        // el ejecutivo no usa esta ruta y sin mes ve todos los de su empresa
-        mvc.perform(get("/api/v1/cobranza/mis-compromisos").header("Authorization", tokenPaula))
-                .andExpect(status().isForbidden());
-        mvc.perform(get("/api/v1/cobranza/compromisos").header("Authorization", tokenPaula))
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].folio").value("CP-2026-0201"))
+                .andExpect(jsonPath("$[0].pagable").value(true));
+        mvc.perform(get("/api/v1/compromisos/me/CP-2026-0202").header("Authorization", camila()))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/compromisos/me/resumen?mes=2026-10").header("Authorization", camila()))
+                .andExpect(jsonPath("$.porPagarMes").value(80_000))
+                .andExpect(jsonPath("$.proximos", hasSize(1)));
     }
 
-    // ---------- revisión desde soporte RN-09 ----------
     @Test
-    void reviewSavesSurchargeAndReturnsByDate() throws Exception {
-        EmpresaCliente altos = empresaRepo.findByCodigo("EC-01").orElseThrow();
-        Compromiso atrasado = guardar(altos, persona(), "Atrasado", EstadoCompromiso.PENDIENTE, LocalDate.of(2026, 9, 30));
-        Compromiso pagado = guardar(altos, persona(), "Pagado", EstadoCompromiso.PAGADO, LocalDate.of(2026, 9, 10));
+    void pagoEnOrdenConComprobanteEIdempotencia() throws Exception {
+        compromiso("CP-2026-0301", CAMILA, "EC-03", "Crédito de consumo", 7, 24, 86_400, "2026-10-05", EstadoCompromiso.PENDIENTE);
+        compromiso("CP-2026-0302", CAMILA, "EC-03", "Crédito de consumo", 8, 24, 86_400, "2026-11-05", EstadoCompromiso.PENDIENTE);
 
-        mvc.perform(post("/api/v1/internal/cobranza/compromisos/" + atrasado.getFolio() + "/revision").header(CLAVE, TokensPrueba.CLAVE_INTERNA))
+        // 1. la cuota 8 espera a la 7 RN-04
+        mvc.perform(get("/api/v1/compromisos/me/CP-2026-0302/cotizacion-pago").header("Authorization", camila()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_OUT_OF_ORDER"))
+                .andExpect(jsonPath("$.details.folioAnterior").value("CP-2026-0301"));
+
+        // 2. la 7 venció ayer: total con el recargo de crédito andino
+        String cotizacion = campo(mvc.perform(get("/api/v1/compromisos/me/CP-2026-0301/cotizacion-pago").header("Authorization", camila()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.estado").value("EN_REVISION"))
-                .andExpect(jsonPath("$.total").value(108_500));
-        mvc.perform(delete("/api/v1/internal/cobranza/compromisos/" + atrasado.getFolio() + "/revision").header(CLAVE, TokensPrueba.CLAVE_INTERNA))
+                .andExpect(jsonPath("$.recargo").value(12_000))
+                .andExpect(jsonPath("$.total").value(98_400)), "cotizacionId");
+
+        // 3. cotización vieja o sin llave se rechaza
+        mvc.perform(pagar("CP-2026-0301", "llave-1", "otra")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("QUOTE_CHANGED"));
+        mvc.perform(post("/api/v1/compromisos/me/CP-2026-0301/pagos").header("Authorization", camila())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"medioPago\":\"DEBITO\",\"cotizacionId\":\"" + cotizacion + "\"}"))
+                .andExpect(status().isBadRequest());
+
+        // 4. pago con comprobante; repetir la llave devuelve lo mismo sin cobrar de nuevo
+        mvc.perform(pagar("CP-2026-0301", "llave-1", cotizacion)).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.numeroComprobante").value("CPR-000001"))
+                .andExpect(jsonPath("$.montoPagado").value(98_400))
+                .andExpect(jsonPath("$.canal").value("APP"));
+        mvc.perform(pagar("CP-2026-0301", "llave-1", cotizacion)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.numeroComprobante").value("CPR-000001"));
+        mvc.perform(pagar("CP-2026-0301", "llave-2", cotizacion)).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ALREADY_PAID"));
+        assertThat(pagoRepo.count()).isEqualTo(1);
+
+        // 5. ahora la cuota 8 se puede pagar y el historial muestra el pago
+        mvc.perform(get("/api/v1/compromisos/me/CP-2026-0302").header("Authorization", camila()))
+                .andExpect(jsonPath("$.pagable").value(true));
+        mvc.perform(get("/api/v1/pagos/me").header("Authorization", camila()))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].folio").value("CP-2026-0301"));
+        mvc.perform(get("/api/v1/comprobantes/CPR-000001").header("Authorization", camila()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.estado").value("VENCIDO"))
-                .andExpect(jsonPath("$.total").value(108_500));
-        mvc.perform(post("/api/v1/internal/cobranza/compromisos/" + pagado.getFolio() + "/revision").header(CLAVE, TokensPrueba.CLAVE_INTERNA))
+                .andExpect(jsonPath("$.personaRut").value("15834207-3"))
+                .andExpect(jsonPath("$.recargo").value(12_000));
+        mvc.perform(get("/api/v1/comprobantes/CPR-000001").header("Authorization", luis()))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/compromisos/me/CP-2026-0301").header("Authorization", camila()))
+                .andExpect(jsonPath("$.estado").value("PAGADO"))
+                .andExpect(jsonPath("$.numeroComprobante").value("CPR-000001"));
+    }
+
+    @Test
+    void cumplimientoYAnulacionesDelUsuario() throws Exception {
+        compromiso("CP-2026-0401", CAMILA, "EC-06", "Cuota social", null, null, 15_000, "2026-09-05", EstadoCompromiso.VENCIDO);
+        mvc.perform(get("/api/v1/cumplimiento/me").header("Authorization", camila()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.elegibles").value(1))
+                .andExpect(jsonPath("$.porcentaje").doesNotExist());
+        mvc.perform(get("/api/v1/anulaciones/me").header("Authorization", camila()))
+                .andExpect(jsonPath("$", hasSize(0)));
+        // cuenta sin persona en usuarios
+        when(usuarios.porUsuario(U_LUIS)).thenReturn(Optional.empty());
+        mvc.perform(get("/api/v1/compromisos/me").header("Authorization", luis())).andExpect(status().isNotFound());
+    }
+
+    // ---------- rutas internas para soporte ----------
+    @Test
+    void revisionDesdeSoporteBloqueaElPagoYEsIdempotente() throws Exception {
+        compromiso("CP-2026-0501", CAMILA, "EC-01", "Cuota pie", 1, 36, 310_000, "2026-10-30", EstadoCompromiso.PENDIENTE);
+        compromiso("CP-2026-0502", CAMILA, "EC-01", "Cuota pie", 2, 36, 310_000, "2026-09-01", EstadoCompromiso.PAGADO);
+
+        mvc.perform(get("/api/v1/internal/compromisos/CP-2026-0501/reportabilidad?usuarioId=" + U_CAMILA)
+                        .header("X-Internal-Api-Key", CLAVE_INTERNA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.delUsuario").value(true))
+                .andExpect(jsonPath("$.reportable").value(true))
+                .andExpect(jsonPath("$.correoPersona").value("crojas@correo.ejemplo"));
+        mvc.perform(get("/api/v1/internal/compromisos/CP-2026-0501/reportabilidad?usuarioId=" + U_LUIS)
+                        .header("X-Internal-Api-Key", CLAVE_INTERNA))
+                .andExpect(jsonPath("$.delUsuario").value(false));
+        mvc.perform(get("/api/v1/internal/compromisos/CP-2026-9999/reportabilidad").header("X-Internal-Api-Key", CLAVE_INTERNA))
+                .andExpect(status().isNotFound());
+
+        for (int i = 0; i < 2; i++) {
+            mvc.perform(put("/api/v1/internal/compromisos/CP-2026-0501/revision").header("X-Internal-Api-Key", CLAVE_INTERNA))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.estado").value("EN_REVISION"));
+        }
+        mvc.perform(get("/api/v1/compromisos/me/CP-2026-0501/cotizacion-pago").header("Authorization", camila()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("IN_REVIEW"));
+        mvc.perform(put("/api/v1/internal/compromisos/CP-2026-0502/revision").header("X-Internal-Api-Key", CLAVE_INTERNA))
                 .andExpect(status().isConflict());
+
+        for (int i = 0; i < 2; i++) {
+            mvc.perform(put("/api/v1/internal/compromisos/CP-2026-0501/fin-revision").header("X-Internal-Api-Key", CLAVE_INTERNA))
+                    .andExpect(jsonPath("$.estado").value("PENDIENTE"));
+        }
     }
 
-    // --- helpers privados ---
-    private void asignar(String correo, String empresa) throws Exception {
-        mvc.perform(put("/api/v1/internal/cobranza/ejecutivos").header(CLAVE, TokensPrueba.CLAVE_INTERNA)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"correo\":\"" + correo + "\",\"codigoEmpresa\":\"" + empresa + "\"}"))
-                .andExpect(status().isNoContent());
+    @Test
+    void empresaDelEjecutivoParaOtrosServicios() throws Exception {
+        mvc.perform(get("/api/v1/internal/empresas/ejecutivos/" + EJ_ALTOS).header("X-Internal-Api-Key", CLAVE_INTERNA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.codigo").value("EC-01"));
+        mvc.perform(get("/api/v1/internal/empresas/ejecutivos/" + EJ_SIN_EMPRESA).header("X-Internal-Api-Key", CLAVE_INTERNA))
+                .andExpect(status().isNotFound());
     }
 
-    private org.springframework.test.web.servlet.ResultActions registrar(String token, String json) throws Exception {
-        return mvc.perform(post("/api/v1/cobranza/compromisos").header("Authorization", token)
-                .contentType(MediaType.APPLICATION_JSON).content(json));
+    // --- helpers ---
+    private static String altos() {
+        return bearer(EJ_ALTOS, "psaavedra@altosmaipo.ejemplo", "EJECUTIVO");
     }
 
-    private org.springframework.test.web.servlet.ResultActions anular(String folio, String json) throws Exception {
-        return mvc.perform(post("/api/v1/cobranza/compromisos/" + folio + "/anulacion").header("Authorization", tokenPaula)
-                .contentType(MediaType.APPLICATION_JSON).content(json));
+    private static String credito() {
+        return bearer(EJ_CREDITO, "chenriquez@creditoandino.ejemplo", "EJECUTIVO");
     }
 
-    private String compromisoNuevo(String concepto, int cuota) {
+    private static String camila() {
+        return bearer(U_CAMILA, CAMILA.correo(), "USUARIO_FINAL");
+    }
+
+    private static String luis() {
+        return bearer(U_LUIS, LUIS.correo(), "USUARIO_FINAL");
+    }
+
+    private MockHttpServletRequestBuilder pagar(String folio, String llave, String cotizacion) {
+        return post("/api/v1/compromisos/me/" + folio + "/pagos")
+                .header("Authorization", camila())
+                .header("Idempotency-Key", llave)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"medioPago\":\"DEBITO\",\"cotizacionId\":\"" + cotizacion + "\"}");
+    }
+
+    private static String campo(ResultActions r, String nombre) throws Exception {
+        var m = java.util.regex.Pattern.compile("\"" + nombre + "\":\"([^\"]+)\"")
+                .matcher(r.andReturn().getResponse().getContentAsString());
+        assertThat(m.find()).isTrue();
+        return m.group(1);
+    }
+
+    private static String registro(String rut, String concepto, Integer cuota, Integer total, String vence) {
         return """
-                {"rut":"12.476.318-5","nombres":"Luis Alberto","apellidos":"Muñoz Tapia",
-                 "correo":"lmunoz@correo.ejemplo","telefono":"+56 9 0000 0102",
-                 "concepto":"%s","monto":45000,"fechaVencimiento":"2026-11-30","numeroCuota":%d,"totalCuotas":36}
-                """.formatted(concepto, cuota);
+                {"rut":"%s","concepto":"%s","monto":310000,"fechaVencimiento":"%s","numeroCuota":%s,"totalCuotas":%s}
+                """.formatted(rut, concepto, vence, cuota, total);
     }
 
-    private Persona persona() {
-        return personaRepo.findByRut("15834207-3").orElseGet(() -> personaRepo.save(Persona.builder()
-                .rut("15834207-3").nombres("Camila Andrea").apellidos("Rojas Peña")
-                .correo("crojas@correo.ejemplo").telefono("+56 9 0000 0101").build()));
-    }
-
-    private Compromiso guardar(EmpresaCliente empresa, Persona persona, String concepto, EstadoCompromiso estado, LocalDate vence) {
-        return compromisoRepo.save(Compromiso.builder()
-                .folio("PR-" + (compromisoRepo.count() + 1))
-                .empresa(empresa).persona(persona).concepto(concepto)
-                .monto(100_000).fechaVencimiento(vence).estado(estado).recargoAplicado(0)
-                .fechaCambioEstado(RelojFijo.AHORA).registradoPor("psaavedra@altosmaipo.ejemplo").fechaRegistro(RelojFijo.AHORA)
+    private void compromiso(String folio, PersonaInterna p, String empresa, String concepto, Integer cuota,
+                            Integer total, long monto, String vence, EstadoCompromiso estado) {
+        LocalDateTime carga = LocalDateTime.of(2026, 8, 30, 9, 0);
+        Compromiso c = compromisoRepo.save(Compromiso.builder()
+                .folio(folio)
+                .empresa(empresaRepo.findByCodigo(empresa).orElseThrow())
+                .personaId(p.id())
+                .personaRut(p.rut())
+                .personaNombre(p.nombres() + " " + p.apellidos())
+                .concepto(concepto)
+                .numeroCuota(cuota)
+                .totalCuotas(total)
+                .monto(monto)
+                .fechaVencimiento(LocalDate.parse(vence))
+                .estado(estado)
+                .fechaCambioEstado(carga)
+                .fechaRegistro(carga)
                 .build());
+        assertThat(c.getId()).isNotNull();
     }
 }

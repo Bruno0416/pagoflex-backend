@@ -29,8 +29,22 @@ class ReglasReporteTest {
         assertThat(ReglasReporte.estaAtrasado(EstadoReporte.ABIERTO, jueves, HOY)).isTrue();
         assertThat(ReglasReporte.estaAtrasado(EstadoReporte.ABIERTO, viernes, HOY)).isFalse();
         // si ya lo tomó un agente deja de contar como atrasado
-        assertThat(ReglasReporte.estaAtrasado(EstadoReporte.EN_GESTION, jueves, HOY)).isFalse();
+        assertThat(ReglasReporte.estaAtrasado(EstadoReporte.ASIGNADO, jueves, HOY)).isFalse();
         assertThat(ReglasReporte.estaAtrasado(EstadoReporte.RESUELTO, jueves, HOY)).isFalse();
+        // el límite para la base coincide con la regla
+        assertThat(ReglasReporte.ultimoDiaAtrasado(HOY)).isEqualTo(jueves);
+    }
+
+    @Test
+    void statesOnlyMoveOneStepForward() {
+        assertThat(ReglasReporte.transicionValida(EstadoReporte.ABIERTO, EstadoReporte.ASIGNADO)).isTrue();
+        assertThat(ReglasReporte.transicionValida(EstadoReporte.ASIGNADO, EstadoReporte.EN_ATENCION)).isTrue();
+        assertThat(ReglasReporte.transicionValida(EstadoReporte.EN_ATENCION, EstadoReporte.RESUELTO)).isTrue();
+        // sin saltos ni retrocesos
+        assertThat(ReglasReporte.transicionValida(EstadoReporte.ABIERTO, EstadoReporte.RESUELTO)).isFalse();
+        assertThat(ReglasReporte.transicionValida(EstadoReporte.ASIGNADO, EstadoReporte.RESUELTO)).isFalse();
+        assertThat(ReglasReporte.transicionValida(EstadoReporte.EN_ATENCION, EstadoReporte.ASIGNADO)).isFalse();
+        assertThat(ReglasReporte.transicionValida(EstadoReporte.RESUELTO, EstadoReporte.ABIERTO)).isFalse();
     }
 
     @Test

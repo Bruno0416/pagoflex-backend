@@ -2,6 +2,7 @@ package com.pagoflex.soporte.features.reporte.controller;
 
 import com.pagoflex.security.CurrentUser;
 import com.pagoflex.soporte.features.reporte.dto.request.ReportarRequest;
+import com.pagoflex.soporte.features.reporte.dto.response.PaginaResponse;
 import com.pagoflex.soporte.features.reporte.dto.response.ReporteResponse;
 import com.pagoflex.soporte.features.reporte.service.ReporteService;
 import jakarta.validation.Valid;
@@ -10,13 +11,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 /// Reportes del usuario final sobre sus cobros
 @RestController
-@RequestMapping("/api/v1/soporte/reportes")
+@RequestMapping("/api/v1/reportes")
 @RequiredArgsConstructor
-public class ReporteController {
+public class ReporteUsuarioController {
     private final ReporteService service;
 
     @PostMapping
@@ -24,8 +23,15 @@ public class ReporteController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.reportar(CurrentUser.get(), request));
     }
 
-    @GetMapping("/mios")
-    public ResponseEntity<List<ReporteResponse>> misReportes() {
-        return ResponseEntity.ok(service.misReportes(CurrentUser.get().email()));
+    @GetMapping("/me")
+    public ResponseEntity<PaginaResponse<ReporteResponse>> misReportes(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(service.misReportes(CurrentUser.id(), page, size));
+    }
+
+    @GetMapping("/me/{numero}")
+    public ResponseEntity<ReporteResponse> miReporte(@PathVariable String numero) {
+        return ResponseEntity.ok(service.miReporte(CurrentUser.id(), numero));
     }
 }

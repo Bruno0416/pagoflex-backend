@@ -30,7 +30,12 @@ pagoflex:
 
 cobranza-service:
   api:
-    base-url: http://cobranza-service:8083/api/v1/internal/cobranza
+    base-url: http://cobranza-service:8083/api/v1/internal
+
+# solo lo usa la carga demo para conocer el uuid de las cuentas de ejemplo
+usuarios-service:
+  api:
+    base-url: http://usuarios-service:8081/api/v1/internal
 
 eureka:
   client:

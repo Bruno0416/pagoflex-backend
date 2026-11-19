@@ -7,25 +7,24 @@ import com.pagoflex.cobranza.features.compromiso.dto.response.PersonaEncontradaR
 import com.pagoflex.cobranza.features.compromiso.dto.response.ResumenCobranzaResponse;
 import com.pagoflex.cobranza.features.compromiso.entity.EstadoCompromiso;
 import com.pagoflex.cobranza.features.empresa.dto.response.EmpresaResponse;
+import com.pagoflex.security.AuthenticatedUser;
 
 import java.time.YearMonth;
 import java.util.List;
+import java.util.UUID;
 
-public interface CompromisoService {
-    CompromisoResponse registrar(String ejecutivo, RegistrarCompromisoRequest request);
+public interface CobranzaEjecutivoService {
+    EmpresaResponse empresa(UUID ejecutivoId);
 
-    List<CompromisoResponse> listar(String ejecutivo, YearMonth mes, EstadoCompromiso estado);
+    PersonaEncontradaResponse buscarPersona(UUID ejecutivoId, String rut);
 
-    CompromisoResponse detalle(String ejecutivo, String folio);
+    ResumenCobranzaResponse resumen(UUID ejecutivoId, YearMonth mes);
 
-    CompromisoResponse anular(String ejecutivo, String folio, AnularCompromisoRequest request);
+    List<CompromisoResponse> listar(UUID ejecutivoId, YearMonth mes, EstadoCompromiso estado);
 
-    ResumenCobranzaResponse resumen(String ejecutivo, YearMonth mes);
+    CompromisoResponse detalle(UUID ejecutivoId, String folio);
 
-    EmpresaResponse empresa(String ejecutivo);
+    CompromisoResponse registrar(AuthenticatedUser ejecutivo, RegistrarCompromisoRequest request);
 
-    PersonaEncontradaResponse buscarPersona(String ejecutivo, String rut);
-
-    // usuario final: solo sus propios compromisos
-    List<CompromisoResponse> deUsuario(String correo);
+    CompromisoResponse anular(AuthenticatedUser ejecutivo, String folio, AnularCompromisoRequest request);
 }

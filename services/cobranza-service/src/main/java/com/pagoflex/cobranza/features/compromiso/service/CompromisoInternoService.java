@@ -2,9 +2,10 @@ package com.pagoflex.cobranza.features.compromiso.service;
 
 import com.pagoflex.contracts.cobranza.CompromisoInterno;
 
-/// Operaciones que otros servicios piden por la red interna, por ejemplo soporte-service
+import java.util.UUID;
+
 public interface CompromisoInternoService {
-    CompromisoInterno obtener(String folio);
+    CompromisoInterno reportabilidad(String folio, UUID usuarioId);
 
     CompromisoInterno marcarEnRevision(String folio);
 

@@ -2,24 +2,30 @@ package com.pagoflex.cobranza.features.empresa.controller;
 
 import com.pagoflex.cobranza.features.empresa.dto.request.AsignarEmpresaRequest;
 import com.pagoflex.cobranza.features.empresa.service.EjecutivoService;
+import com.pagoflex.contracts.cobranza.EmpresaInterna;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
-/// Uso interno: asocia un ejecutivo de usuarios-service a su empresa
+import java.util.UUID;
+
+/// Empresa de cada ejecutivo para otros servicios; exigen X-Internal-Api-Key
 @RestController
-@RequestMapping("/api/v1/internal/cobranza/ejecutivos")
+@RequestMapping("/api/v1/internal/empresas/ejecutivos")
 @RequiredArgsConstructor
 public class EjecutivoInternoController {
     private final EjecutivoService service;
 
+    @GetMapping("/{usuarioId}")
+    public EmpresaInterna empresa(@PathVariable UUID usuarioId) {
+        return service.interna(usuarioId);
+    }
+
+    // mientras no exista el registro con código de empresa
     @PutMapping
-    public ResponseEntity<Void> asignar(@Valid @RequestBody AsignarEmpresaRequest request) {
-        service.asignar(request.correo(), request.codigoEmpresa());
-        return ResponseEntity.noContent().build();
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void asignar(@Valid @RequestBody AsignarEmpresaRequest request) {
+        service.asignar(request.usuarioId(), request.codigoEmpresa());
     }
 }

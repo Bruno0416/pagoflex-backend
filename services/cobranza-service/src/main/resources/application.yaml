@@ -40,3 +40,7 @@ management:
     web:
       exposure:
         include: health
+
+usuarios-service:
+  api:
+    base-url: http://usuarios-service:8081/api/v1/internal

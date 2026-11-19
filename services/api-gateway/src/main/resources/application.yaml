@@ -18,14 +18,15 @@ spring:
               uri: lb://usuarios-service
               predicates:
                 - Path=/api/v1/usuarios/**
-            - id: cobranza-service
-              uri: lb://cobranza-service
-              predicates:
-                - Path=/api/v1/cobranza/**
+            # soporte va antes que cobranza: comparte el prefijo /api/v1/empresas/me
             - id: soporte-service
               uri: lb://soporte-service
               predicates:
-                - Path=/api/v1/soporte/**
+                - Path=/api/v1/reportes,/api/v1/reportes/**,/api/v1/empresas/me/reportes,/api/v1/empresas/me/reportes/**,/api/v1/empresas/me/compromisos/*/reporte-activo
+            - id: cobranza-service
+              uri: lb://cobranza-service
+              predicates:
+                - Path=/api/v1/compromisos/**,/api/v1/pagos/**,/api/v1/comprobantes/**,/api/v1/anulaciones/**,/api/v1/cumplimiento/**,/api/v1/empresas/me,/api/v1/empresas/me/**
 
 pagoflex:
   security:

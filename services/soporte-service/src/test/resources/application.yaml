@@ -25,4 +25,8 @@ pagoflex:
 
 cobranza-service:
   api:
-    base-url: http://localhost:0/api/v1/internal/cobranza
+    base-url: http://localhost:0/api/v1/internal
+
+usuarios-service:
+  api:
+    base-url: http://localhost:0/api/v1/internal

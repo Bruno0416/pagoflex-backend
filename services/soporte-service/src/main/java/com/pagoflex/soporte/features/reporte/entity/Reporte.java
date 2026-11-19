@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -16,7 +18,9 @@ import java.util.UUID;
 @Table(name = "reporte",
         indexes = {
                 @Index(name = "idx_reporte_folio_estado", columnList = "folio, estado"),
-                @Index(name = "idx_reporte_usuario", columnList = "correo_usuario")
+                @Index(name = "idx_reporte_usuario", columnList = "usuario_id"),
+                @Index(name = "idx_reporte_empresa", columnList = "empresa_id"),
+                @Index(name = "idx_reporte_agente", columnList = "agente_id")
         })
 public class Reporte {
     @Id
@@ -45,6 +49,14 @@ public class Reporte {
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
+    // ---------- dueños por uuid: usuario de usuarios-service y empresa de cobranza ----------
+    /// Users.id del JWT de quien reportó
+    @Column(name = "usuario_id", nullable = false)
+    private UUID usuarioId;
+
+    @Column(name = "empresa_id", nullable = false)
+    private UUID empresaId;
+
     // ---------- copia del cobro al reportar, para la bandeja del agente ----------
     @Column(name = "empresa", nullable = false)
     private String empresa;
@@ -71,24 +83,49 @@ public class Reporte {
     @Column(name = "nombre_usuario", nullable = false)
     private String nombreUsuario;
 
-    /// el usuario se identifica por su correo, que viene en el JWT
-    @Column(name = "correo_usuario", nullable = false, length = 150)
-    private String correoUsuario;
+    @Column(name = "usuario_correo", length = 150)
+    private String usuarioCorreo;
 
     @Column(name = "telefono_usuario", length = 20)
     private String telefonoUsuario;
 
-    // ---------- gestión del agente RN-23 ----------
-    /// correo del agente responsable desde que lo toma
-    @Column(name = "agente", length = 150)
-    private String agente;
+    // ---------- gestión del agente ----------
+    @Column(name = "agente_id")
+    private UUID agenteId;
 
+    @Column(name = "agente_correo", length = 150)
+    private String agenteCorreo;
+
+    /// cuando el agente lo tomó (ASIGNADO)
     @Column(name = "fecha_toma")
     private LocalDateTime fechaToma;
+
+    @Column(name = "fecha_atencion")
+    private LocalDateTime fechaAtencion;
 
     @Column(name = "respuesta", length = 1000)
     private String respuesta;
 
     @Column(name = "fecha_resolucion")
     private LocalDateTime fechaResolucion;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("fecha ASC")
+    private List<HistorialEstadoReporte> historial = new ArrayList<>();
+
+    // ---------- cambios de estado ----------
+    public void registrarCambio(EstadoReporte nuevo, UUID actorId, String actorCorreo, LocalDateTime fecha) {
+        // 1. guardar el paso en el historial
+        historial.add(HistorialEstadoReporte.builder()
+                .reporte(this)
+                .estadoAnterior(estado)
+                .estadoNuevo(nuevo)
+                .actorId(actorId)
+                .actorCorreo(actorCorreo)
+                .fecha(fecha)
+                .build());
+        // 2. dejar el estado nuevo
+        this.estado = nuevo;
+    }
 }

@@ -1,51 +1,108 @@
 package com.pagoflex.cobranza.features.compromiso;
 
+import com.pagoflex.cobranza.core.client.UsuariosServiceClient;
+import com.pagoflex.cobranza.core.exceptions.UsuariosNoDisponible;
+import com.pagoflex.cobranza.features.compromiso.data.CargaDemoAcceso;
+import com.pagoflex.cobranza.features.compromiso.repository.AnulacionRepository;
+import com.pagoflex.cobranza.features.compromiso.repository.ComprobanteRepository;
+import com.pagoflex.cobranza.features.compromiso.repository.CompromisoRepository;
+import com.pagoflex.cobranza.features.compromiso.repository.PagoRepository;
+import com.pagoflex.cobranza.features.compromiso.service.CobranzaEjecutivoService;
+import com.pagoflex.cobranza.features.empresa.repository.EjecutivoEmpresaRepository;
+import com.pagoflex.cobranza.features.empresa.repository.EmpresaClienteRepository;
+import com.pagoflex.cobranza.features.empresa.service.EjecutivoService;
 import com.pagoflex.cobranza.support.RelojFijo;
-import com.pagoflex.cobranza.support.TokensPrueba;
+import com.pagoflex.contracts.usuarios.CrearPersonaInterna;
+import com.pagoflex.contracts.usuarios.PersonaInterna;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.YearMonth;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
-/// Con la carga demo la cobranza de septiembre cuadra con el anexo 9
-@SpringBootTest(properties = {
-        "pagoflex.demo.enabled=true",
-        "spring.datasource.url=jdbc:h2:mem:cobranza-demo;DB_CLOSE_DELAY=-1"
-})
-@AutoConfigureMockMvc
+@SpringBootTest
 @Import(RelojFijo.class)
 class CargaDemoTest {
     @Autowired
-    private MockMvc mvc;
+    private EmpresaClienteRepository empresaRepo;
+    @Autowired
+    private CompromisoRepository compromisoRepo;
+    @Autowired
+    private AnulacionRepository anulacionRepo;
+    @Autowired
+    private PagoRepository pagoRepo;
+    @Autowired
+    private ComprobanteRepository comprobanteRepo;
+    @Autowired
+    private EjecutivoEmpresaRepository ejecutivoRepo;
+    @Autowired
+    private EjecutivoService ejecutivoService;
+    @Autowired
+    private CobranzaEjecutivoService cobranza;
+    @Autowired
+    private TransactionTemplate tx;
 
-    @Test
-    void septemberSummaryMatchesTheCase() throws Exception {
-        String paula = TokensPrueba.bearer(UUID.randomUUID(), "psaavedra@altosmaipo.ejemplo", "EJECUTIVO");
+    private final UsuariosServiceClient usuarios = mock(UsuariosServiceClient.class);
+    private final Map<String, UUID> cuentas = new ConcurrentHashMap<>();
 
-        mvc.perform(get("/api/v1/cobranza/resumen").param("mes", "2026-09").header("Authorization", paula))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.empresa").value("Altos del Maipo"))
-                .andExpect(jsonPath("$.totalCompromisos").value(120))
-                .andExpect(jsonPath("$.pagados").value(104))
-                .andExpect(jsonPath("$.anulados").value(2))
-                .andExpect(jsonPath("$.tasaCobranza").value(88.1))
-                .andExpect(jsonPath("$.recaudado").value(32_476_000));
+    @BeforeEach
+    void preparar() {
+        comprobanteRepo.deleteAll();
+        pagoRepo.deleteAll();
+        anulacionRepo.deleteAll();
+        compromisoRepo.deleteAll();
+        ejecutivoRepo.deleteAll();
+
+        // usuarios responde con cuentas y crea las personas que faltan
+        when(usuarios.porCorreo(anyString())).thenAnswer(i -> Optional.of(new PersonaInterna(UUID.randomUUID(),
+                "1-9", "N", "A", i.getArgument(0), null, cuentas.computeIfAbsent(i.getArgument(0), k -> UUID.randomUUID()))));
+        when(usuarios.porRut(anyString())).thenReturn(Optional.empty());
+        when(usuarios.crear(any(CrearPersonaInterna.class))).thenAnswer(i -> {
+            CrearPersonaInterna r = i.getArgument(0);
+            return new PersonaInterna(UUID.randomUUID(), r.rut(), r.nombres(), r.apellidos(), r.correo(), r.telefono(), null);
+        });
     }
 
     @Test
-    void demoUserSeesHerCommitments() throws Exception {
-        String camila = TokensPrueba.bearer(UUID.randomUUID(), "crojas@correo.ejemplo", "USUARIO_FINAL");
+    void cargaElAnexoConSusPagosYUnaTasaDe881() {
+        var carga = CargaDemoAcceso.crear(empresaRepo, compromisoRepo, anulacionRepo, pagoRepo, ejecutivoService, usuarios, tx);
 
-        mvc.perform(get("/api/v1/cobranza/mis-compromisos").header("Authorization", camila))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(5));
+        carga.cargar();
+        carga.cargar();
+
+        // 12 del anexo + 119 de septiembre, sin repetir la segunda vez
+        assertThat(compromisoRepo.count()).isEqualTo(131);
+        assertThat(pagoRepo.count()).isEqualTo(3 + 104);
+        assertThat(anulacionRepo.count()).isEqualTo(3);
+        var resumen = cobranza.resumen(cuentas.get("psaavedra@altosmaipo.ejemplo"), YearMonth.of(2026, 9));
+        assertThat(resumen.totalCompromisos()).isEqualTo(120);
+        assertThat(resumen.pagados()).isEqualTo(104);
+        assertThat(resumen.tasaCobranza()).isEqualTo(88.1);
+        assertThat(resumen.recaudado()).isEqualTo(32_476_000);
+    }
+
+    @Test
+    void reintentaMientrasUsuariosNoResponde() {
+        when(usuarios.porCorreo(anyString()))
+                .thenThrow(new UsuariosNoDisponible())
+                .thenAnswer(i -> Optional.of(new PersonaInterna(UUID.randomUUID(), "1-9", "N", "A",
+                        i.getArgument(0), null, UUID.randomUUID())));
+        var carga = CargaDemoAcceso.crear(empresaRepo, compromisoRepo, anulacionRepo, pagoRepo, ejecutivoService, usuarios, tx);
+
+        carga.cargarConReintentos();
+
+        assertThat(compromisoRepo.count()).isEqualTo(131);
     }
 }

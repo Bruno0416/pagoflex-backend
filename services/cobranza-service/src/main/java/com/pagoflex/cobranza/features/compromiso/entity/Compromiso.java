@@ -2,7 +2,11 @@ package com.pagoflex.cobranza.features.compromiso.entity;
 
 import com.pagoflex.cobranza.features.empresa.entity.EmpresaCliente;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,7 +19,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @Entity
 @Table(name = "compromiso",
-        indexes = @Index(name = "idx_compromiso_empresa_vencimiento", columnList = "empresa_id, fecha_vencimiento"))
+        indexes = {
+                @Index(name = "idx_compromiso_empresa_vencimiento", columnList = "empresa_id, fecha_vencimiento"),
+                @Index(name = "idx_compromiso_persona", columnList = "persona_id")
+        })
 public class Compromiso {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -29,9 +36,16 @@ public class Compromiso {
     @JoinColumn(name = "empresa_id", nullable = false)
     private EmpresaCliente empresa;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "persona_id", nullable = false)
-    private Persona persona;
+    /// persona de usuarios-service; sin clave foránea entre servicios
+    @Column(name = "persona_id", nullable = false)
+    private UUID personaId;
+
+    /// rut y nombre al registrar, para listar sin llamar a usuarios
+    @Column(name = "persona_rut", nullable = false, length = 12)
+    private String personaRut;
+
+    @Column(name = "persona_nombre", nullable = false, length = 170)
+    private String personaNombre;
 
     @Column(name = "concepto", nullable = false)
     private String concepto;
@@ -59,13 +73,24 @@ public class Compromiso {
     @Column(name = "fecha_cambio_estado", nullable = false)
     private LocalDateTime fechaCambioEstado;
 
-    /// ejecutivo que lo registró RN-20
-    @Column(name = "registrado_por", nullable = false, length = 150)
-    private String registradoPor;
+    /// ejecutivo que lo registró RN-20; nulo en la carga inicial
+    @Column(name = "registrado_por_id")
+    private UUID registradoPorId;
+
+    @Column(name = "registrado_por_correo", length = 150)
+    private String registradoPorCorreo;
 
     @Column(name = "fecha_registro", nullable = false, updatable = false)
     private LocalDateTime fechaRegistro;
 
     @OneToOne(mappedBy = "compromiso", fetch = FetchType.LAZY)
     private Anulacion anulacion;
+
+    @OneToOne(mappedBy = "compromiso", fetch = FetchType.LAZY)
+    private Pago pago;
+
+    /// evita que dos pagos o cambios simultáneos pisen el mismo compromiso
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
 }

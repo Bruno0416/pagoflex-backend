@@ -1,7 +1,11 @@
 package com.pagoflex.cobranza.features.compromiso.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -31,9 +35,11 @@ public class Anulacion {
     @Column(name = "comentario", length = 500)
     private String comentario;
 
-    /// correo del ejecutivo que lo anuló
-    @Column(name = "ejecutivo", nullable = false, length = 150)
-    private String ejecutivo;
+    @Column(name = "ejecutivo_id")
+    private UUID ejecutivoId;
+
+    @Column(name = "ejecutivo_correo", nullable = false, length = 150)
+    private String ejecutivoCorreo;
 
     @Column(name = "fecha", nullable = false)
     private LocalDateTime fecha;

@@ -52,7 +52,7 @@ pagoflex-backend/
 │   ├── api-gateway/       # entrada publica del backend
 │   ├── usuarios-service/  # autenticacion y gestion de usuarios
 │   ├── email-service/     # envio interno de correos
-│   ├── cobranza-service/  # empresas y compromisos del ejecutivo
+│   ├── cobranza-service/  # empresas, compromisos, pagos y comprobantes
 │   ├── soporte-service/   # reportes de cobros y bandeja del agente
 │   └── eureka-server/     # registro y descubrimiento de servicios
 ├── infrastructure/
@@ -72,8 +72,8 @@ pagoflex-backend/
 | `eureka-server` | Implementado | Descubrimiento de servicios. |
 | `usuarios-service` | En desarrollo | Autenticación, recuperación y cambio de contraseña; perfil y registro de otros roles pendientes. |
 | `email-service` | Implementado | Envío interno de correos y plantillas. |
-| `cobranza-service` | En desarrollo | Empresas, registro y anulación de compromisos, resumen mensual del ejecutivo; pagos y comprobantes pendientes. |
-| `soporte-service` | En desarrollo | Reporte de cobros del usuario y bandeja del agente (tomar y resolver). |
+| `cobranza-service` | Implementado | Ejecutivo (`/api/v1/empresas/me`): registro, anulación, lista y resumen mensual. Usuario final (`/api/v1/compromisos/me`): detalle, cotización y pago simulado en orden de cuotas con `Idempotency-Key`, comprobante, historial, anulaciones y cumplimiento. Personas vía rutas internas de usuarios. |
+| `soporte-service` | Implementado | Reportes del usuario (`/api/v1/reportes`), bandeja paginada del agente con estados `ABIERTO → ASIGNADO → EN_ATENCION → RESUELTO` e historial, y reportes de su empresa para el ejecutivo (`/api/v1/empresas/me/reportes`). |
 | `mensajeria-service` | **No implementado** | Mensajes asociados a la atención de casos. |
 | `vinculacion-service` | **No implementado** | Reconocimientos, recomendaciones y avisos. |
 

@@ -1,9 +1,11 @@
 package com.pagoflex.soporte.core.client;
 
 import com.pagoflex.contracts.cobranza.CompromisoInterno;
+import com.pagoflex.contracts.cobranza.EmpresaInterna;
 import com.pagoflex.soporte.core.exceptions.CobranzaNoDisponible;
 import com.pagoflex.soporte.core.exceptions.CobroNoReportable;
 import com.pagoflex.soporte.core.exceptions.CompromisoNoEncontrado;
+import com.pagoflex.soporte.core.exceptions.EjecutivoSinEmpresa;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
@@ -13,9 +15,12 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class CobranzaServiceClient {
+    private static final Duration ESPERA = Duration.ofSeconds(10);
+
     private final WebClient client;
 
     // ---------- comunicación interna ----------
@@ -30,23 +35,51 @@ public class CobranzaServiceClient {
                 .build();
     }
 
-    public CompromisoInterno obtener(String folio) {
-        return llamar(HttpMethod.GET, "/compromisos/{folio}", folio);
+    // datos del cobro y si este usuario lo puede reportar; usuarioId puede ir nulo
+    public CompromisoInterno reportabilidad(String folio, UUID usuarioId) {
+        try {
+            return client.get()
+                    .uri(b -> {
+                        b.path("/compromisos/{folio}/reportabilidad");
+                        if (usuarioId != null) b.queryParam("usuarioId", usuarioId);
+                        return b.build(folio);
+                    })
+                    .retrieve()
+                    .onStatus(s -> s.value() == 404, r -> Mono.error(new CompromisoNoEncontrado(folio)))
+                    .bodyToMono(CompromisoInterno.class)
+                    .block(ESPERA);
+        } catch (WebClientException ex) {
+            throw new CobranzaNoDisponible();
+        }
     }
 
     public CompromisoInterno marcarEnRevision(String folio) {
-        return llamar(HttpMethod.POST, "/compromisos/{folio}/revision", folio);
+        return cambiar("/compromisos/{folio}/revision", folio);
     }
 
-    public CompromisoInterno salirDeRevision(String folio) {
-        return llamar(HttpMethod.DELETE, "/compromisos/{folio}/revision", folio);
+    public CompromisoInterno finRevision(String folio) {
+        return cambiar("/compromisos/{folio}/fin-revision", folio);
+    }
+
+    // empresa del ejecutivo; 404 en cobranza significa que no tiene una asignada
+    public EmpresaInterna empresaDeEjecutivo(UUID usuarioId) {
+        try {
+            return client.get()
+                    .uri("/empresas/ejecutivos/{usuarioId}", usuarioId)
+                    .retrieve()
+                    .onStatus(s -> s.value() == 404, r -> Mono.error(new EjecutivoSinEmpresa()))
+                    .bodyToMono(EmpresaInterna.class)
+                    .block(ESPERA);
+        } catch (WebClientException ex) {
+            throw new CobranzaNoDisponible();
+        }
     }
 
     // --- helper privado ---
-    private CompromisoInterno llamar(HttpMethod metodo, String uri, String folio) {
+    private CompromisoInterno cambiar(String uri, String folio) {
         try {
-            // 1. pedir la operación y traducir los errores de cobranza
-            return client.method(metodo)
+            // 1. pedir el cambio y traducir los errores de cobranza
+            return client.method(HttpMethod.PUT)
                     .uri(uri, folio)
                     .retrieve()
                     .onStatus(s -> s.value() == 404, r -> Mono.error(new CompromisoNoEncontrado(folio)))
@@ -54,7 +87,7 @@ public class CobranzaServiceClient {
                             .map(body -> new CobroNoReportable(String.valueOf(
                                     body.getOrDefault("detail", "Este cobro no se puede reportar")))))
                     .bodyToMono(CompromisoInterno.class)
-                    .block(Duration.ofSeconds(10));
+                    .block(ESPERA);
         } catch (WebClientException ex) {
             // 2. cobranza caído o lento: avisar sin exponer el error interno
             throw new CobranzaNoDisponible();

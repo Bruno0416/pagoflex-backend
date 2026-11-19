@@ -22,7 +22,8 @@ public record CompromisoResponse(
         PersonaResponse persona,
         String registradoPor,
         LocalDateTime fechaRegistro,
-        AnulacionResponse anulacion
+        AnulacionResponse anulacion,
+        String numeroComprobante
 ) {
     public record PersonaResponse(String nombre, String rut, String correo, String telefono) {
     }

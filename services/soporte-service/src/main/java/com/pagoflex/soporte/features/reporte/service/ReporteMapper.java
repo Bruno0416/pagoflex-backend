@@ -25,11 +25,16 @@ public final class ReporteMapper {
                 r.getFechaCreacion(),
                 new ReporteResponse.CobroResponse(r.getEmpresa(), r.getConcepto(), r.getNumeroCuota(),
                         r.getTotalCuotas(), r.getTotal(), r.getFechaVencimiento(), r.getEstadoCompromiso()),
-                new ReporteResponse.UsuarioResponse(r.getNombreUsuario(), r.getCorreoUsuario(), r.getTelefonoUsuario()),
-                r.getAgente(),
+                new ReporteResponse.UsuarioResponse(r.getNombreUsuario(), r.getUsuarioCorreo(), r.getTelefonoUsuario()),
+                r.getAgenteCorreo(),
                 r.getFechaToma(),
+                r.getFechaAtencion(),
                 r.getRespuesta(),
-                r.getFechaResolucion()
+                r.getFechaResolucion(),
+                r.getHistorial().stream()
+                        .map(h -> new ReporteResponse.CambioEstadoResponse(h.getEstadoAnterior(), h.getEstadoNuevo(),
+                                h.getActorCorreo(), h.getFecha()))
+                        .toList()
         );
     }
 }

@@ -1,15 +1,13 @@
 package com.pagoflex.cobranza.features.empresa.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
 
+import java.util.UUID;
 
+/// mientras no esté el registro con código de empresa, se asigna por ruta interna
 public record AsignarEmpresaRequest(
-        @NotBlank(message = "El correo del ejecutivo es obligatorio")
-        @Email(message = "Debe ser un correo válido: email@example.com")
-        String correo,
-
-        @NotBlank(message = "El código de la empresa es obligatorio")
-        String codigoEmpresa
+        @NotNull UUID usuarioId,
+        @NotBlank String codigoEmpresa
 ) {
 }

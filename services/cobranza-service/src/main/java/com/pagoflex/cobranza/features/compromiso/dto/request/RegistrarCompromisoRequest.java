@@ -10,9 +10,11 @@ public record RegistrarCompromisoRequest(
         String rut,
 
         @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]*$", message = "El nombre no puede contener números ni caracteres especiales")
+        @Size(max = 80, message = "El nombre no puede superar los 80 caracteres")
         String nombres,
 
         @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]*$", message = "El apellido no puede contener números ni caracteres especiales")
+        @Size(max = 80, message = "El apellido no puede superar los 80 caracteres")
         String apellidos,
 
         @Email(message = "Debe ser un correo válido: email@example.com")
@@ -27,15 +29,18 @@ public record RegistrarCompromisoRequest(
 
         @NotNull(message = "El monto es obligatorio")
         @Positive(message = "El monto debe ser mayor que cero")
+        @Max(value = 999_999_999, message = "El monto es demasiado alto")
         Long monto,
 
         @NotNull(message = "La fecha de vencimiento es obligatoria")
         LocalDate fechaVencimiento,
 
         @Positive(message = "La cuota debe ser mayor que cero")
+        @Max(value = 360, message = "La cuota no puede ser mayor que 360")
         Integer numeroCuota,
 
         @Positive(message = "El total de cuotas debe ser mayor que cero")
+        @Max(value = 360, message = "El total de cuotas no puede ser mayor que 360")
         Integer totalCuotas
 ) {
 }
