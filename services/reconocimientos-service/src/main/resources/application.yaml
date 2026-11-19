@@ -1,0 +1,58 @@
+server:
+  port: ${RECONOCIMIENTOS_PORT:8086}
+
+spring:
+  application:
+    name: reconocimientos-service
+  cloud:
+    loadbalancer:
+      cache:
+        enabled: false   # eureka ya mantiene el registro en memoria
+
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 3s
+      repositories:
+        enabled: false
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/${RECONOCIMIENTOS_DB}
+    username: ${RECONOCIMIENTOS_USER}
+    password: ${RECONOCIMIENTOS_PASS}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+pagoflex:
+  security:
+    internal-api-key: ${INTERNAL_API_KEY}
+    jwt:
+      secret: ${JWT_SECRET}
+    public-paths:
+      - /actuator/health
+  reconocimientos:
+    zona-horaria: ${RECONOCIMIENTOS_ZONA_HORARIA:America/Santiago}
+    cobranza:
+      base-url: ${RECONOCIMIENTOS_COBRANZA_URL:http://cobranza-service:${COBRANZA_PORT:8083}/api/v1/internal}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://admin:${EUREKA_ADMIN_PASSWD}@eureka-server:${EUREKA_PORT:8761}/eureka/
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

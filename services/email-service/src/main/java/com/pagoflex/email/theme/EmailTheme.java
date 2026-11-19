@@ -11,8 +11,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/// Tokens de color para las plantillas de correo, leídos una sola vez de {@code email-theme.json}.
-/// Expone, por plantilla, {@code {light: {alias: "#HEX"}, dark: {...}}} ya resueltos.
 
 public final class EmailTheme {
     private static final String RESOURCE = "email-theme.json";
@@ -59,7 +57,7 @@ public final class EmailTheme {
     private EmailTheme() {
     }
 
-    /// Colores resueltos de la plantilla; si no tiene alias propios, solo los compartidos.
+
     public static Map<String, Map<String, String>> forTemplate(String templateName) {
         return TEMPLATES.getOrDefault(templateName, BASE);
     }

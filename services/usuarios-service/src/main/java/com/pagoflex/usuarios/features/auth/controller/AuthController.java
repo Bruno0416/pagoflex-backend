@@ -2,6 +2,7 @@ package com.pagoflex.usuarios.features.auth.controller;
 
 import com.pagoflex.usuarios.features.auth.dto.request.LoginRequest;
 import com.pagoflex.usuarios.features.auth.dto.request.RegisterRequest;
+import com.pagoflex.usuarios.features.auth.dto.request.RefreshTokenRequest;
 import com.pagoflex.usuarios.features.auth.dto.response.AuthResponse;
 import com.pagoflex.usuarios.features.auth.service.AuthService;
 import jakarta.validation.Valid;
@@ -19,16 +20,25 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
     private final AuthService service;
 
-    @PostMapping("/register")
+    @PostMapping("/registro")
     public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) {
         service.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @PostMapping("/login")
+    @PostMapping("/iniciar-sesion")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(service.login(request));
     }
 
-    // TODO: considerar refresh y cambiar authResponse para devolver par de tokens(access y refresh)
+    @PostMapping("/renovar")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(service.refresh(request.tokenRenovacion()));
+    }
+
+    @PostMapping("/cerrar-sesion")
+    public ResponseEntity<Void> logout() {
+        service.logout();
+        return ResponseEntity.noContent().build();
+    }
 }

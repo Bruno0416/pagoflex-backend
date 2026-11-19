@@ -6,6 +6,7 @@ import com.pagoflex.usuarios.features.auth.dto.response.AuthResponse;
 
 public interface AuthService {
     void register(RegisterRequest request);
-
     AuthResponse login(LoginRequest request);
+    AuthResponse refresh(String token);
+    void logout();
 }

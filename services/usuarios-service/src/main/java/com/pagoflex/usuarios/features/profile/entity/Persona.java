@@ -27,12 +27,19 @@ public class Persona {
     @Column(name = "apellidos", nullable = false)
     private String apellidos;
 
-    /// correo de contacto para usuarios no registrados RN-20
+
     @Column(name = "correo_contacto")
     private String correoContacto;
 
     @Column(name = "telefono")
     private String telefono;
 
-    // TODO: agregar campo para avatar
+    @Column(name = "empresa_id")
+    private UUID empresaId;
+
+    @Column(name = "cargo", length = 100)
+    private String cargo;
+
+    @Column(name = "avatar", length = 100)
+    private String avatar;
 }

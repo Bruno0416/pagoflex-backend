@@ -6,5 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface PersonaRepository extends JpaRepository<Persona, UUID> {
-
+    boolean existsByRut(String rut);
+    java.util.Optional<Persona> findByRut(String rut);
 }

@@ -19,7 +19,7 @@ import java.security.MessageDigest;
 
 @Configuration
 public class SecurityConfig {
-    private static final String INTERNAL_PATH = "/api/v1/email/internal/send";
+    private static final String INTERNAL_PATH = "/api/v1/email/internal/enviar";
 
     @Bean
     SecurityFilterChain security(HttpSecurity http,

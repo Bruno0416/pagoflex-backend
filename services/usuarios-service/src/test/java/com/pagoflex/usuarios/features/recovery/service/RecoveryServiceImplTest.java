@@ -5,13 +5,14 @@ import com.pagoflex.contracts.email.EmailType;
 import com.pagoflex.contracts.email.SendEmailRequest;
 import com.pagoflex.usuarios.core.client.EmailServiceClient;
 import com.pagoflex.usuarios.features.auth.entity.Users;
+import com.pagoflex.usuarios.features.auth.session.AuthSessionService;
 import com.pagoflex.usuarios.features.auth.repository.UserRepository;
 import com.pagoflex.usuarios.features.recovery.dto.request.RecoveryRequest;
-import com.pagoflex.usuarios.features.recovery.dto.request.ResendRecoveryCodeRequest;
 import com.pagoflex.usuarios.features.recovery.dto.request.ResetPasswordRequest;
 import com.pagoflex.usuarios.features.recovery.dto.request.VerifyCodeRequest;
 import com.pagoflex.usuarios.features.recovery.exceptions.InvalidResetToken;
 import com.pagoflex.usuarios.features.recovery.service.code.VerificationCodeService;
+import com.pagoflex.usuarios.features.recovery.service.code.RecoverySendThrottle;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,6 +38,10 @@ class RecoveryServiceImplTest {
     @Mock
     private EmailServiceClient emailClient;
 
+    @Mock
+    private AuthSessionService sessions;
+    @Mock
+    private RecoverySendThrottle sendThrottle;
     @InjectMocks
     private RecoveryServiceImpl service;
 
@@ -53,6 +58,7 @@ class RecoveryServiceImplTest {
     void recoveryGeneratesAndSendsCodeForExistingAccount() {
         when(userRepo.findByEmail("usuario@example.com"))
                 .thenReturn(Optional.of(Users.builder().email("usuario@example.com").build()));
+        when(sendThrottle.allow("usuario@example.com")).thenReturn(true);
         when(codeService.generateCode("usuario@example.com", CodeType.RECOVERY)).thenReturn("ABC123");
 
         service.requestPasswordReset(new RecoveryRequest(" USUARIO@EXAMPLE.COM "));
@@ -64,11 +70,23 @@ class RecoveryServiceImplTest {
     void resendGeneratesNewCodeForExistingAccount() {
         when(userRepo.findByEmail("usuario@example.com"))
                 .thenReturn(Optional.of(Users.builder().email("usuario@example.com").build()));
+        when(sendThrottle.allow("usuario@example.com")).thenReturn(true);
         when(codeService.generateCode("usuario@example.com", CodeType.RECOVERY)).thenReturn("XYZ789");
 
-        service.resendCode(new ResendRecoveryCodeRequest("usuario@example.com"));
+        service.resendCode(new RecoveryRequest("usuario@example.com"));
 
         verify(emailClient).send(new SendEmailRequest("usuario@example.com", EmailType.RECOVERY, Map.of("code", "XYZ789")));
+    }
+
+    @Test
+    void recoveryCooldownKeepsPublicResponseWithoutSendingAnotherCode() {
+        when(userRepo.findByEmail("usuario@example.com"))
+                .thenReturn(Optional.of(Users.builder().email("usuario@example.com").build()));
+        when(sendThrottle.allow("usuario@example.com")).thenReturn(false);
+
+        service.resendCode(new RecoveryRequest("usuario@example.com"));
+
+        verifyNoInteractions(codeService, emailClient);
     }
 
     @Test
@@ -78,7 +96,7 @@ class RecoveryServiceImplTest {
 
         var response = service.verifyResetCode(new VerifyCodeRequest(" USUARIO@example.com ", "ABC123"));
 
-        assertThat(response.resetToken()).isEqualTo("token-temporal");
+        assertThat(response.tokenRestablecimiento()).isEqualTo("token-temporal");
     }
 
     @Test
@@ -86,19 +104,20 @@ class RecoveryServiceImplTest {
         Users user = Users.builder().email("usuario@example.com").password("hash-anterior").build();
         when(codeService.consumeResetToken("token-temporal")).thenReturn("usuario@example.com");
         when(userRepo.findByEmail("usuario@example.com")).thenReturn(Optional.of(user));
-        when(encoder.encode("nuevaClave123")).thenReturn("hash-nuevo");
+        when(encoder.encode("NuevaClave123!")).thenReturn("hash-nuevo");
 
-        service.resetPassword(new ResetPasswordRequest("token-temporal", "nuevaClave123"));
+        service.resetPassword(new ResetPasswordRequest("token-temporal", "NuevaClave123!"));
 
         assertThat(user.getPassword()).isEqualTo("hash-nuevo");
         verify(userRepo).save(user);
+        verify(sessions).revokeAll(user.getId());
     }
 
     @Test
     void resetRejectsUsedTokenWithoutChangingUser() {
         when(codeService.consumeResetToken("token-usado")).thenThrow(new InvalidResetToken());
 
-        assertThatThrownBy(() -> service.resetPassword(new ResetPasswordRequest("token-usado", "nuevaClave123")))
+        assertThatThrownBy(() -> service.resetPassword(new ResetPasswordRequest("token-usado", "NuevaClave123!")))
                 .isInstanceOf(InvalidResetToken.class);
         verifyNoInteractions(userRepo, encoder);
     }

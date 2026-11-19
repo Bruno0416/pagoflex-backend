@@ -6,6 +6,7 @@ import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -15,13 +16,12 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import java.nio.charset.StandardCharsets;
 
 
-/// Validación compartida de JWT; cada servicio define sus propias rutas autorizadas.
 public final class JwtSupport {
     private JwtSupport() {
     }
 
-    // ---------- validación de jwt ----------
-    public static JwtDecoder accessDecoder(String secret) {
+    // ---------- validacion de jwt ----------
+    public static JwtDecoder accessDecoder(String secret, StringRedisTemplate redis) {
         // 1. validar la longitud del secreto compartido
         byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
         if (bytes.length < 32) {
@@ -36,6 +36,8 @@ public final class JwtSupport {
                 "ACCESS".equals(jwt.getClaimAsString("token_type"))
                         && jwt.getSubject() != null
                         && jwt.getExpiresAt() != null
+                        && jwt.getId() != null
+                        && jwt.getClaimAsString("sid") != null
                         && jwt.getClaimAsString("userId") != null
                         && jwt.getSubject().equals(jwt.getClaimAsString("userId"))
                         && jwt.getClaimAsStringList("roles") != null
@@ -43,8 +45,9 @@ public final class JwtSupport {
                         ? OAuth2TokenValidatorResult.success()
                         : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token"));
         // 4. aplicar los validadores de jwt
-        decoder.setJwtValidator(
-                new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefault(), access));
+        if (redis == null) throw new IllegalArgumentException("Falta la conexion Redis para validar sesiones");
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefault(), access,
+                new RedisAccessTokenValidator(redis)));
         return decoder;
     }
 

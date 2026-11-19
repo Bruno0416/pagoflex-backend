@@ -1,5 +1,6 @@
 package com.pagoflex.usuarios.features.auth.dto.request;
 
+import com.pagoflex.contracts.organization.ValidateOrganizationCodeRequest;
 import com.pagoflex.usuarios.core.validation.StrongPassword;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -9,11 +10,11 @@ import jakarta.validation.constraints.Size;
 public record RegisterRequest(
         @NotBlank(message = "El correo es obligatorio")
         @Email(message = "Debe ser un correo válido: email@example.com")
-        String email,
+        String correo,
 
         @NotBlank
         @StrongPassword
-        String password,
+        String contrasena,
 
         @NotBlank(message = "El rut es obligatorio")
         @Size(min = 9, max = 10, message = "El RUT debe tener 7 u 8 dígitos y un dígito verificador")
@@ -26,6 +27,10 @@ public record RegisterRequest(
 
         @NotBlank(message = "El nombre es obligatorio")
         @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$", message = "El apellido no puede contener números ni caracteres especiales")
-        String apellidos
+        String apellidos,
+
+        @Pattern(regexp = ValidateOrganizationCodeRequest.FORMATO,
+                message = "El codigo de empresa debe tener el formato AA00AA")
+        String codigoEmpresa
 ) {
 }

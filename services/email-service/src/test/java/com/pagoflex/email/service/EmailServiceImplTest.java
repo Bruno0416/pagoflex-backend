@@ -3,6 +3,10 @@ package com.pagoflex.email.service;
 import com.pagoflex.contracts.email.EmailType;
 import com.pagoflex.contracts.email.SendEmailRequest;
 import com.pagoflex.core.error.PagoFlexException;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import jakarta.mail.Message;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -11,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -83,9 +88,25 @@ class EmailServiceImplTest {
         doThrow(new MailSendException("error smtp interno"))
                 .when(mailSender).send(message);
 
-        assertThatThrownBy(() -> service.send(RECOVERY_REQUEST))
-                .isInstanceOf(PagoFlexException.class)
-                .hasMessageContaining("No fue posible enviar el correo")
-                .satisfies(error -> assertThat(((PagoFlexException) error).getStatus()).isEqualTo(502));
+        // el error se registra a proposito: se captura en memoria para no mostrarlo como fallo real
+        Logger serviceLogger = (Logger) LoggerFactory.getLogger(EmailServiceImpl.class);
+        ListAppender<ILoggingEvent> logs = new ListAppender<>();
+        logs.start();
+        serviceLogger.addAppender(logs);
+        serviceLogger.setAdditive(false);
+        try {
+            assertThatThrownBy(() -> service.send(RECOVERY_REQUEST))
+                    .isInstanceOf(PagoFlexException.class)
+                    .hasMessageContaining("No fue posible enviar el correo")
+                    .satisfies(error -> assertThat(((PagoFlexException) error).getStatus()).isEqualTo(502));
+        } finally {
+            serviceLogger.setAdditive(true);
+            serviceLogger.detachAppender(logs);
+        }
+
+        assertThat(logs.list).singleElement().satisfies(event -> {
+            assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+            assertThat(event.getFormattedMessage()).contains("RECOVERY");
+        });
     }
 }

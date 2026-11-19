@@ -10,8 +10,6 @@ import java.util.Set;
 import java.util.UUID;
 
 
-/// Acceso a la identidad de la petición autenticada.
-/// No válida ni decodifica tokens: eso corresponde al filtro JWT de Spring Security.
 public final class CurrentUser {
     private CurrentUser() {
     }

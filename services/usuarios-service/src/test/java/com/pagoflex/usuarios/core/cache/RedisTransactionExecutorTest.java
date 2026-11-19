@@ -40,4 +40,13 @@ class RedisTransactionExecutorTest {
         verify(operations).discard();
         verify(operations, never()).exec();
     }
+
+    @Test
+    void abortedExecIsReportedAsNullWhetherSpringReturnsNullOrAnEmptyList() {
+        RedisTransactionExecutor executor = new RedisTransactionExecutor(redis);
+        when(operations.exec()).thenReturn(List.of()).thenReturn(null);
+
+        assertThat(executor.commit(operations, () -> operations.delete("key"))).isNull();
+        assertThat(executor.commit(operations, () -> operations.delete("key"))).isNull();
+    }
 }

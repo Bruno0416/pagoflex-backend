@@ -1,4 +1,3 @@
 package com.pagoflex.usuarios.features.auth.dto.response;
 
-public record AuthResponse(String token) {
-}
+public record AuthResponse(String tokenAcceso, String tokenRenovacion, String tipoToken, long expiraEnSegundos) {}
