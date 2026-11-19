@@ -52,6 +52,8 @@ pagoflex-backend/
 │   ├── api-gateway/       # entrada publica del backend
 │   ├── usuarios-service/  # autenticacion y gestion de usuarios
 │   ├── email-service/     # envio interno de correos
+│   ├── cobranza-service/  # empresas y compromisos del ejecutivo
+│   ├── soporte-service/   # reportes de cobros y bandeja del agente
 │   └── eureka-server/     # registro y descubrimiento de servicios
 ├── infrastructure/
 │   ├── compose.yml        # contenedores y red interna
@@ -70,8 +72,8 @@ pagoflex-backend/
 | `eureka-server` | Implementado | Descubrimiento de servicios. |
 | `usuarios-service` | En desarrollo | Autenticación, recuperación y cambio de contraseña; perfil y registro de otros roles pendientes. |
 | `email-service` | Implementado | Envío interno de correos y plantillas. |
-| `cobranza-service` | **No implementado** | Empresas, compromisos, cuotas, pagos y comprobantes. |
-| `soporte-service` | **No implementado** | Reportes, asignaciones y seguimiento de casos. |
+| `cobranza-service` | En desarrollo | Empresas, registro y anulación de compromisos, resumen mensual del ejecutivo; pagos y comprobantes pendientes. |
+| `soporte-service` | En desarrollo | Reporte de cobros del usuario y bandeja del agente (tomar y resolver). |
 | `mensajeria-service` | **No implementado** | Mensajes asociados a la atención de casos. |
 | `vinculacion-service` | **No implementado** | Reconocimientos, recomendaciones y avisos. |
 
@@ -101,7 +103,7 @@ python3 tools/init_db.py
 ```
 
 La primera orden valida el entorno sin modificar la base; la segunda inicia MySQL y prepara sus credenciales. **El
-script no crea las tablas ni ejecuta migraciones.** Hibernate las crea o actualiza al iniciar `usuarios-service` mediante
+script no crea las tablas ni ejecuta migraciones.** Hibernate las crea o actualiza al iniciar cada servicio mediante
 `spring.jpa.hibernate.ddl-auto: update`.
 
 ## Iniciar los servicios

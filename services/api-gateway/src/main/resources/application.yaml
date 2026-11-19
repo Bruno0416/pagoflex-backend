@@ -18,6 +18,14 @@ spring:
               uri: lb://usuarios-service
               predicates:
                 - Path=/api/v1/usuarios/**
+            - id: cobranza-service
+              uri: lb://cobranza-service
+              predicates:
+                - Path=/api/v1/cobranza/**
+            - id: soporte-service
+              uri: lb://soporte-service
+              predicates:
+                - Path=/api/v1/soporte/**
 
 pagoflex:
   security:

@@ -33,6 +33,8 @@
         <!-- ======== servicios ======== -->
         <module>services/email-service</module>
         <module>services/usuarios-service</module>
+        <module>services/cobranza-service</module>
+        <module>services/soporte-service</module>
 
         <!-- ======== descubrimiento y gateway ======== -->
         <module>services/api-gateway</module>

@@ -1,0 +1,46 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: soporte-service
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/${SOPORTE_DB}
+    username: ${SOPORTE_USER}
+    password: ${SOPORTE_PASS}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+pagoflex:
+  zona-horaria: America/Santiago
+  # datos de ejemplo del anexo 9 para probar la app conectada
+  demo:
+    enabled: ${DEMO_DATA:false}
+  security:
+    internal-api-key: ${INTERNAL_API_KEY}
+    jwt:
+      secret: ${JWT_SECRET}
+    public-paths:
+      - /actuator/health
+
+cobranza-service:
+  api:
+    base-url: http://cobranza-service:8083/api/v1/internal/cobranza
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://admin:${EUREKA_ADMIN_PASSWD}@eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

@@ -53,6 +53,10 @@ services:
         condition: service_healthy
       email-service:
         condition: service_healthy
+      cobranza-service:
+        condition: service_healthy
+      soporte-service:
+        condition: service_healthy
     environment:
       - PORT=8080
     healthcheck:
@@ -103,6 +107,42 @@ services:
         condition: service_healthy
     environment:
       - PORT=8082
+    healthcheck:
+      <<: *default-healthcheck
+    networks: [ backend ]
+
+  # ---- COBRANZA ----
+  cobranza-service:
+    build:
+      context: ..
+      dockerfile: services/cobranza-service/Dockerfile
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - PORT=8083
+    healthcheck:
+      <<: *default-healthcheck
+    networks: [ backend ]
+
+  # ---- SOPORTE ----
+  soporte-service:
+    build:
+      context: ..
+      dockerfile: services/soporte-service/Dockerfile
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      cobranza-service:
+        condition: service_healthy
+    environment:
+      - PORT=8084
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
