@@ -35,6 +35,7 @@
         <module>services/usuarios-service</module>
         <module>services/cobranza-service</module>
         <module>services/soporte-service</module>
+        <module>services/mensajeria-service</module>
 
         <!-- ======== descubrimiento y gateway ======== -->
         <module>services/api-gateway</module>

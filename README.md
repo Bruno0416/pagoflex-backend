@@ -54,6 +54,7 @@ pagoflex-backend/
 │   ├── email-service/     # envio interno de correos
 │   ├── cobranza-service/  # empresas, compromisos, pagos y comprobantes
 │   ├── soporte-service/   # reportes de cobros y bandeja del agente
+│   ├── mensajeria-service/ # chat del reporte entre agente y ejecutivo
 │   └── eureka-server/     # registro y descubrimiento de servicios
 ├── infrastructure/
 │   ├── compose.yml        # contenedores y red interna
