@@ -2,6 +2,14 @@ spring:
   application:
     name: cobranza-service
 
+  data:
+    redis:
+      host: localhost
+      port: ${REDIS_PORT:6379}
+      timeout: 3s
+      repositories:
+        enabled: false
+
   datasource:
     url: jdbc:h2:mem:cobranza;DB_CLOSE_DELAY=-1
     username: sa

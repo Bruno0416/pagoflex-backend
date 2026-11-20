@@ -1,9 +1,13 @@
 server:
-  port: 8761
+  port: ${EUREKA_PORT:8761}
 
 spring:
   application:
     name: eureka-server
+  cloud:
+    loadbalancer:
+      cache:
+        enabled: false   # eureka ya mantiene el registro en memoria; no se agrega caffeine
 
   security:
     user:

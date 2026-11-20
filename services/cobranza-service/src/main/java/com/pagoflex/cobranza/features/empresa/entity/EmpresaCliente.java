@@ -1,7 +1,12 @@
 package com.pagoflex.cobranza.features.empresa.entity;
 
+import com.pagoflex.contracts.organization.OrganizationType;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.UUID;
 
@@ -33,4 +38,13 @@ public class EmpresaCliente {
     /// recargo fijo que se suma una sola vez cuando el compromiso vence RN-03
     @Column(name = "recargo_atraso", nullable = false)
     private long recargoAtraso;
+
+    /// INTERNA es PagoFlex (registra agentes); CLIENTE registra ejecutivos
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo", columnDefinition = "varchar(10)")
+    private OrganizationType tipo;
+
+    /// solo el hash del código de registro; el código nunca se guarda en claro
+    @Column(name = "codigo_registro_hash", length = 100)
+    private String codigoRegistroHash;
 }

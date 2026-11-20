@@ -8,7 +8,7 @@ import com.pagoflex.cobranza.features.compromiso.exceptions.CompromisoNoEncontra
 import com.pagoflex.cobranza.features.compromiso.repository.CompromisoRepository;
 import com.pagoflex.cobranza.features.compromiso.rules.ReglasCompromiso;
 import com.pagoflex.contracts.cobranza.CompromisoInterno;
-import com.pagoflex.contracts.usuarios.PersonaInterna;
+import com.pagoflex.cobranza.core.client.PersonaInterna;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,17 +31,21 @@ public class CompromisoInternoServiceImpl implements CompromisoInternoService {
     public CompromisoInterno reportabilidad(String folio, UUID usuarioId) {
         Compromiso compromiso = compromisoRepo.findByFolio(folio).orElseThrow(() -> new CompromisoNoEncontrado(folio));
 
-        // 1. contacto de la persona para el agente; si usuarios no responde va sin él
-        PersonaInterna persona;
+        // 1. con la cuenta del que reporta: es el dueño si su persona es la del cobro
+        PersonaInterna persona = null;
+        Boolean delUsuario = null;
         try {
-            persona = usuarios.porId(compromiso.getPersonaId()).orElse(null);
+            if (usuarioId != null) {
+                PersonaInterna cuenta = usuarios.porUsuario(usuarioId).orElse(null);
+                delUsuario = cuenta != null && cuenta.id().equals(compromiso.getPersonaId());
+                if (delUsuario) persona = cuenta;
+            }
+            // 2. sin cuenta, el contacto que dejó el ejecutivo al registrarla
+            if (persona == null) persona = usuarios.porId(compromiso.getPersonaId()).orElse(null);
         } catch (RuntimeException ex) {
-            persona = null;
+            // 3. usuarios no responde: no se puede confirmar el dueño
+            if (usuarioId != null && delUsuario == null) throw ex;
         }
-
-        // 2. dueño: la cuenta del token tiene que ser la de la persona del cobro
-        Boolean delUsuario = usuarioId == null ? null
-                : persona != null && usuarioId.equals(persona.usuarioId());
         return CompromisoMapper.toInterno(compromiso, LocalDate.now(clock), persona, delUsuario);
     }
 

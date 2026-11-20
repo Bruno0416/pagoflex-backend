@@ -1,9 +1,11 @@
 package com.pagoflex.web.error;
 
 import com.pagoflex.core.error.PagoFlexException;
+import com.pagoflex.core.error.FieldErrorException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -23,7 +25,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PagoFlexException.class)
     public ProblemDetail handlePagoFlexException(PagoFlexException ex) {
         // 1. construir la respuesta con el estado y mensaje del proyecto
-        return problem(org.springframework.http.HttpStatusCode.valueOf(ex.getStatus()), ex.getMessage());
+        ProblemDetail detail = problem(org.springframework.http.HttpStatusCode.valueOf(ex.getStatus()), ex.getMessage());
+        if (ex instanceof FieldErrorException fieldError) {
+            detail.setProperty("invalid_fields", Map.of(fieldError.getField(), fieldError.getMessage()));
+        }
+        return detail;
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ProblemDetail handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+        // 1. indicar que el archivo supera el limite permitido
+        ProblemDetail detail = problem(HttpStatus.CONTENT_TOO_LARGE, "El archivo supera el tamaño permitido");
+        detail.setProperty("invalid_fields", Map.of("avatar", "El archivo supera el tamaño permitido"));
+        return detail;
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -70,7 +84,7 @@ public class GlobalExceptionHandler {
         return detail;
     }
 
-    // --- helper privado ---
+    // --- helper ---
     private ProblemDetail buildValidationProblemDetail(List<FieldError> fieldErrors) {
         // 1. reunir los errores por campo
         ProblemDetail detail = problem(HttpStatus.BAD_REQUEST, "Error en la validación de los datos");
@@ -81,7 +95,7 @@ public class GlobalExceptionHandler {
         return detail;
     }
 
-    // --- helper privado ---
+    // --- helper ---
     private ProblemDetail problem(org.springframework.http.HttpStatusCode status, String message) {
         // 1. construir el detalle del error
         ProblemDetail detail = ProblemDetail.forStatusAndDetail(status, message);

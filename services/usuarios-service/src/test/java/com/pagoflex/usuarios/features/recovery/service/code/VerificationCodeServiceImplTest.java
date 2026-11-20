@@ -8,6 +8,7 @@ import com.pagoflex.usuarios.features.recovery.exceptions.InvalidResetToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisOperations;
@@ -39,13 +40,12 @@ class VerificationCodeServiceImplTest {
     private VerificationCodeServiceImpl service;
 
     @BeforeEach
-    @SuppressWarnings({"rawtypes", "unchecked"})
     void setup() {
         RedisTransactionExecutor transactions = new RedisTransactionExecutor(redis);
-        service = new VerificationCodeServiceImpl(transactions, new RedisExpiringCache(redis, transactions));
+        service = new VerificationCodeServiceImpl(transactions, new RedisExpiringCache(redis));
         ReflectionTestUtils.setField(service, "codeExpirationMinutes", 10L);
         ReflectionTestUtils.setField(service, "resetExpirationMinutes", 10L);
-        lenient().when(redis.execute(any(SessionCallback.class))).thenAnswer(invocation -> {
+        lenient().when(redis.execute(ArgumentMatchers.<SessionCallback<Object>>any())).thenAnswer(invocation -> {
             SessionCallback<?> callback = invocation.getArgument(0);
             return callback.execute(operations);
         });
@@ -55,13 +55,14 @@ class VerificationCodeServiceImplTest {
 
     @Test
     void generateStoresOnlyCodeHashAndExpiration() {
-        when(operations.exec()).thenReturn(List.of(1L, true));
+        when(operations.exec()).thenReturn(List.of(1L, 1L, true));
 
         String code = service.generateCode("user@example.com", CodeType.RECOVERY);
 
         assertThat(code).matches("[A-Z0-9]{6}");
         verify(operations).multi();
         verify(operations).delete(startsWith("pagoflex:auth:active:"));
+        verify(operations).delete(startsWith("pagoflex:auth:attempts:"));
         verify(values).set(startsWith("pagoflex:auth:code:"), argThat(hash ->
                 hash.matches("[0-9a-f]{64}") && !hash.equals(code)), eq(Duration.ofSeconds(600)));
         verify(operations).exec();
@@ -73,13 +74,16 @@ class VerificationCodeServiceImplTest {
                 "user@example.com", CodeType.RECOVERY, "ABC123"))
                 .isInstanceOf(InvalidRecoveryCode.class);
         verify(operations).unwatch();
-        verify(operations, never()).multi();
+        verify(operations).multi();
+        verify(values).set(startsWith("pagoflex:auth:attempts:"), eq("1"),
+                eq(Duration.ofSeconds(600)));
     }
 
     @Test
     void verifyIssuesAnOpaqueTokenWithTtlWhenRedisAcceptsTheCode() throws Exception {
         when(values.get(startsWith("pagoflex:auth:code:"))).thenReturn(hash("ABC123"));
-        when(operations.exec()).thenReturn(List.of(1L, true, true));
+        when(values.get(startsWith("pagoflex:auth:attempts:"))).thenReturn("0");
+        when(operations.exec()).thenReturn(List.of(1L, 1L, true, true));
 
         String token = service.verifyCodeAndIssueResetToken(
                 "user@example.com", CodeType.RECOVERY, "abc123");
@@ -87,6 +91,7 @@ class VerificationCodeServiceImplTest {
         assertThat(token).matches("[A-Za-z0-9_-]{43}");
         verify(operations).watch(anyList());
         verify(operations).delete(startsWith("pagoflex:auth:code:"));
+        verify(operations).delete(startsWith("pagoflex:auth:attempts:"));
         verify(values).set(startsWith("pagoflex:auth:reset:"), eq("user@example.com"),
                 eq(Duration.ofSeconds(600)));
         verify(values).set(startsWith("pagoflex:auth:active:"),
@@ -97,6 +102,7 @@ class VerificationCodeServiceImplTest {
     @Test
     void concurrentVerificationIsRejected() throws Exception {
         when(values.get(startsWith("pagoflex:auth:code:"))).thenReturn(hash("ABC123"));
+        when(values.get(startsWith("pagoflex:auth:attempts:"))).thenReturn("0");
         // EXEC devuelve null cuando otra solicitud modifica una clave vigilada.
         assertThatThrownBy(() -> service.verifyCodeAndIssueResetToken(
                 "user@example.com", CodeType.RECOVERY, "ABC123"))
@@ -105,18 +111,41 @@ class VerificationCodeServiceImplTest {
     }
 
     @Test
+    void fifthWrongAttemptInvalidatesTheOriginalCode() {
+        when(values.get(startsWith("pagoflex:auth:attempts:"))).thenReturn("4");
+        when(operations.exec()).thenReturn(List.of(true, true));
+
+        assertThatThrownBy(() -> service.verifyCodeAndIssueResetToken(
+                "user@example.com", CodeType.RECOVERY, "WRONG1"))
+                .isInstanceOf(InvalidRecoveryCode.class);
+        verify(values).set(startsWith("pagoflex:auth:attempts:"), eq("5"),
+                eq(Duration.ofSeconds(600)));
+        verify(operations).delete(startsWith("pagoflex:auth:code:"));
+    }
+
+    @Test
+    void correctCodeAfterFiveFailuresIsStillRejected() throws Exception {
+        when(values.get(startsWith("pagoflex:auth:attempts:"))).thenReturn("5");
+
+        assertThatThrownBy(() -> service.verifyCodeAndIssueResetToken(
+                "user@example.com", CodeType.RECOVERY, "ABC123"))
+                .isInstanceOf(InvalidRecoveryCode.class);
+        verify(operations, never()).multi();
+    }
+
+    @Test
     void rejectsInvalidExpirationBeforeStoringCode() {
         ReflectionTestUtils.setField(service, "codeExpirationMinutes", 0L);
         assertThatThrownBy(() -> service.generateCode("user@example.com", CodeType.RECOVERY))
                 .isInstanceOf(IllegalStateException.class);
-        verify(redis, never()).execute(any(SessionCallback.class));
+        verify(redis, never()).execute(ArgumentMatchers.<SessionCallback<Object>>any());
     }
 
     @Test
     void consumeRejectsBlankToken() {
         assertThatThrownBy(() -> service.consumeResetToken("  "))
                 .isInstanceOf(InvalidResetToken.class);
-        verify(redis, never()).execute(any(SessionCallback.class));
+        verify(redis, never()).execute(ArgumentMatchers.<SessionCallback<Object>>any());
     }
 
     @Test

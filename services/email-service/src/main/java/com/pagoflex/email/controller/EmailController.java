@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class EmailController {
     private final EmailService emailService;
 
-    @PostMapping("/send")
+    @PostMapping("/enviar")
     public ResponseEntity<Void> send(@Valid @RequestBody SendEmailRequest request) {
         emailService.send(request);
         return ResponseEntity.ok().build();

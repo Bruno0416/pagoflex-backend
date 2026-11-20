@@ -21,9 +21,11 @@
         <jjwt.version>0.13.0</jjwt.version>
         <lombok.version>1.18.48</lombok.version>
         <mysql.version>26.10.0</mysql.version>
+        <pagoflex.it.redis.host>127.0.0.1</pagoflex.it.redis.host>
     </properties>
 
     <modules>
+
         <!-- ======== librerias compartidas ======== -->
         <module>libs/core</module>
         <module>libs/contracts</module>
@@ -36,6 +38,7 @@
         <module>services/cobranza-service</module>
         <module>services/soporte-service</module>
         <module>services/mensajeria-service</module>
+        <module>services/reconocimientos-service</module>
 
         <!-- ======== descubrimiento y gateway ======== -->
         <module>services/api-gateway</module>
@@ -52,27 +55,32 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-api</artifactId>
                 <version>${jjwt.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-impl</artifactId>
                 <version>${jjwt.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-jackson</artifactId>
                 <version>${jjwt.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>com.mysql</groupId>
                 <artifactId>mysql-connector-j</artifactId>
                 <version>${mysql.version}</version>
                 <scope>compile</scope>
             </dependency>
+
         </dependencies>
     </dependencyManagement>
     <build>
@@ -103,7 +111,79 @@
                         </annotationProcessorPaths>
                     </configuration>
                 </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <!-- expone ${org.mockito:mockito-core:jar} para cargar Mockito como agente -->
+                            <id>mockito-agent-path</id>
+                            <goals>
+                                <goal>properties</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>0.8.12</version>
+                    <executions>
+                        <execution>
+                            <id>prepare-agent</id>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>report</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
     </build>
+
+    <profiles>
+        <!-- pruebas *IT contra MySQL/Redis reales: mvnw verify -Pintegration -Dpagoflex.it.redis.port=... -->
+        <profile>
+            <id>integration</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
+                            <systemPropertyVariables>
+                                <pagoflex.it.redis.host>${pagoflex.it.redis.host}</pagoflex.it.redis.host>
+                                <pagoflex.it.redis.port>${pagoflex.it.redis.port}</pagoflex.it.redis.port>
+                            </systemPropertyVariables>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

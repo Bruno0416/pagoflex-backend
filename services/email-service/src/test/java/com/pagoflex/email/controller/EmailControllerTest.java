@@ -40,7 +40,7 @@ class EmailControllerTest {
     @MockitoBean
     private EmailService service;
 
-    private static final String ENDPOINT = "/api/v1/email/internal/send";
+    private static final String ENDPOINT = "/api/v1/email/internal/enviar";
     private static final String INTERNAL_KEY = "test-only-internal-api-key";
     private static final String VALID_REQUEST = """
             {"to":"usuario@example.com","type":"RECOVERY","variables":{"code":"ABC123"}}

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -24,6 +25,7 @@ public class SecurityConfig {
             HttpSecurity http,
             PublicPathsProperties publicPaths,
             @Value("${pagoflex.security.jwt.secret}") String secret,
+            StringRedisTemplate redis,
             @Value("${pagoflex.security.internal-api-key}") String internalKey) throws Exception {
         // 1. desactivar csrf y sesiones
         http.csrf(AbstractHttpConfigurer::disable)
@@ -40,7 +42,7 @@ public class SecurityConfig {
                 .addFilterBefore(new InternalApiKeyFilter(internalKey), BearerTokenAuthenticationFilter.class)
                 // 4. validar el jwt en las rutas privadas
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt
-                        .decoder(JwtSupport.accessDecoder(secret))
+                        .decoder(JwtSupport.accessDecoder(secret, redis))
                         .jwtAuthenticationConverter(JwtSupport.authenticationConverter())));
         return http.build();
     }

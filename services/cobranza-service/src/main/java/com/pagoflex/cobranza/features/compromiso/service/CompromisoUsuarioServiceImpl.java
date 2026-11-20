@@ -13,7 +13,7 @@ import com.pagoflex.cobranza.features.compromiso.repository.ComprobanteRepositor
 import com.pagoflex.cobranza.features.compromiso.repository.CompromisoRepository;
 import com.pagoflex.cobranza.features.compromiso.repository.PagoRepository;
 import com.pagoflex.cobranza.features.compromiso.rules.ReglasCompromiso;
-import com.pagoflex.contracts.usuarios.PersonaInterna;
+import com.pagoflex.cobranza.core.client.PersonaInterna;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

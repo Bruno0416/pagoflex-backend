@@ -12,8 +12,8 @@ import com.pagoflex.cobranza.features.empresa.repository.EjecutivoEmpresaReposit
 import com.pagoflex.cobranza.features.empresa.repository.EmpresaClienteRepository;
 import com.pagoflex.cobranza.features.empresa.service.EjecutivoService;
 import com.pagoflex.cobranza.support.RelojFijo;
-import com.pagoflex.contracts.usuarios.CrearPersonaInterna;
-import com.pagoflex.contracts.usuarios.PersonaInterna;
+import com.pagoflex.cobranza.core.client.CrearPersonaInterna;
+import com.pagoflex.cobranza.core.client.PersonaInterna;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,11 +67,11 @@ class CargaDemoTest {
 
         // usuarios responde con cuentas y crea las personas que faltan
         when(usuarios.porCorreo(anyString())).thenAnswer(i -> Optional.of(new PersonaInterna(UUID.randomUUID(),
-                "1-9", "N", "A", i.getArgument(0), null, cuentas.computeIfAbsent(i.getArgument(0), k -> UUID.randomUUID()))));
+                "1-9", "N", "A", i.getArgument(0), null, cuentas.computeIfAbsent(i.getArgument(0), k -> UUID.randomUUID()), null)));
         when(usuarios.porRut(anyString())).thenReturn(Optional.empty());
         when(usuarios.crear(any(CrearPersonaInterna.class))).thenAnswer(i -> {
             CrearPersonaInterna r = i.getArgument(0);
-            return new PersonaInterna(UUID.randomUUID(), r.rut(), r.nombres(), r.apellidos(), r.correo(), r.telefono(), null);
+            return new PersonaInterna(UUID.randomUUID(), r.rut(), r.nombres(), r.apellidos(), r.correo(), r.telefono(), null, null);
         });
     }
 
@@ -98,7 +98,7 @@ class CargaDemoTest {
         when(usuarios.porCorreo(anyString()))
                 .thenThrow(new UsuariosNoDisponible())
                 .thenAnswer(i -> Optional.of(new PersonaInterna(UUID.randomUUID(), "1-9", "N", "A",
-                        i.getArgument(0), null, UUID.randomUUID())));
+                        i.getArgument(0), null, UUID.randomUUID(), null)));
         var carga = CargaDemoAcceso.crear(empresaRepo, compromisoRepo, anulacionRepo, pagoRepo, ejecutivoService, usuarios, tx);
 
         carga.cargarConReintentos();

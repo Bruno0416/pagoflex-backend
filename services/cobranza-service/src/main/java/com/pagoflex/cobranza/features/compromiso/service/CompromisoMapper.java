@@ -11,7 +11,7 @@ import com.pagoflex.cobranza.features.compromiso.entity.EstadoCompromiso;
 import com.pagoflex.cobranza.features.compromiso.entity.Pago;
 import com.pagoflex.cobranza.features.compromiso.rules.ReglasCompromiso;
 import com.pagoflex.contracts.cobranza.CompromisoInterno;
-import com.pagoflex.contracts.usuarios.PersonaInterna;
+import com.pagoflex.cobranza.core.client.PersonaInterna;
 
 import java.time.LocalDate;
 

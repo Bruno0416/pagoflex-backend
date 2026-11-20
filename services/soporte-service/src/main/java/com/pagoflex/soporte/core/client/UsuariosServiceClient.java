@@ -1,12 +1,13 @@
 package com.pagoflex.soporte.core.client;
 
-import com.pagoflex.contracts.usuarios.PersonaInterna;
+import com.pagoflex.soporte.core.client.PersonaInterna;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.UUID;
 
 /// Solo lo usa la carga demo para conocer el uuid de las cuentas de ejemplo
 @Component
@@ -24,13 +25,20 @@ public class UsuariosServiceClient {
                 .build();
     }
 
+    /// respuesta de /personas/por-correo de usuarios-service
+    record Cuenta(UUID idUsuario, UUID idPersona, String rut, String nombres, String apellidos, String correo,
+                  String telefono, UUID idEmpresa, String rol) {
+    }
+
     // persona con cuenta por su correo; nulo si no existe
     public PersonaInterna porCorreo(String correo) {
-        return client.get()
-                .uri("/usuarios/correo/{correo}", correo)
+        Cuenta c = client.get()
+                .uri("/personas/por-correo/{correo}", correo)
                 .retrieve()
                 .onStatus(s -> s.value() == 404, r -> Mono.empty())
-                .bodyToMono(PersonaInterna.class)
+                .bodyToMono(Cuenta.class)
                 .block(Duration.ofSeconds(10));
+        return c == null ? null : new PersonaInterna(c.idPersona(), c.rut(), c.nombres(), c.apellidos(), c.correo(),
+                c.telefono(), c.idUsuario(), c.idEmpresa());
     }
 }

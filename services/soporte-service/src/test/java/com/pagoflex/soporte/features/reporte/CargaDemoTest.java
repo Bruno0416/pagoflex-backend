@@ -1,7 +1,7 @@
 package com.pagoflex.soporte.features.reporte;
 
 import com.pagoflex.contracts.cobranza.CompromisoInterno;
-import com.pagoflex.contracts.usuarios.PersonaInterna;
+import com.pagoflex.soporte.core.client.PersonaInterna;
 import com.pagoflex.soporte.core.client.CobranzaServiceClient;
 import com.pagoflex.soporte.core.client.UsuariosServiceClient;
 import com.pagoflex.soporte.features.reporte.data.CargaDemo;
@@ -97,7 +97,7 @@ class CargaDemoTest {
     // --- helpers ---
     private void persona(String correo, UUID usuarioId) {
         when(usuarios.porCorreo(correo)).thenReturn(
-                new PersonaInterna(UUID.randomUUID(), "11.111.111-1", "Nombre", "Apellido", correo, null, usuarioId));
+                new PersonaInterna(UUID.randomUUID(), "11.111.111-1", "Nombre", "Apellido", correo, null, usuarioId, null));
     }
 
     private void cobro(String folio, UUID empresaId, String estado) {

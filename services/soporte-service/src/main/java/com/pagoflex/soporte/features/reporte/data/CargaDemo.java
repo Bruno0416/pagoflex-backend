@@ -1,7 +1,7 @@
 package com.pagoflex.soporte.features.reporte.data;
 
 import com.pagoflex.contracts.cobranza.CompromisoInterno;
-import com.pagoflex.contracts.usuarios.PersonaInterna;
+import com.pagoflex.soporte.core.client.PersonaInterna;
 import com.pagoflex.soporte.core.client.CobranzaServiceClient;
 import com.pagoflex.soporte.core.client.UsuariosServiceClient;
 import com.pagoflex.soporte.features.reporte.entity.EstadoReporte;

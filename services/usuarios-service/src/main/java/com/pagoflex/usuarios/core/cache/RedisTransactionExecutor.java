@@ -21,6 +21,8 @@ public class RedisTransactionExecutor {
     public <T> T execute(Function<RedisOperations<String, String>, T> action) {
         Objects.requireNonNull(action);
         return redis.execute(new SessionCallback<T>() {
+            // SessionCallback.execute<K, V> de Spring entrega operaciones genericas: el cast a <String, String>
+            // es el unico posible y es seguro porque la plantilla es un StringRedisTemplate
             @Override
             @SuppressWarnings("unchecked")
             public <K, V> T execute(RedisOperations<K, V> operations) {
@@ -38,8 +40,10 @@ public class RedisTransactionExecutor {
         try {
             changes.run();
 
-            // 2. confirmar o abortar si watch detecto una modificación
-            return operations.exec();
+            // 2. confirmar o abortar si watch detecto una modificación:
+            //    spring devuelve una lista vacia (no null) cuando exec fue abortado, y se unifica como null
+            List<Object> results = operations.exec();
+            return results == null || results.isEmpty() ? null : results;
 
         } catch (RuntimeException ex) {
             // 2. descartar la transacción ante un error local

@@ -5,6 +5,14 @@ spring:
   application:
     name: cobranza-service
 
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 3s
+      repositories:
+        enabled: false
+
   datasource:
     url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/${COBRANZA_DB}
     username: ${COBRANZA_USER}
@@ -43,4 +51,4 @@ management:
 
 usuarios-service:
   api:
-    base-url: http://usuarios-service:8081/api/v1/internal
+    base-url: http://usuarios-service:8081/api/v1/usuarios/internal

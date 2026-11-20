@@ -2,6 +2,14 @@ spring:
   application:
     name: soporte-service
 
+  data:
+    redis:
+      host: localhost
+      port: ${REDIS_PORT:6379}
+      timeout: 3s
+      repositories:
+        enabled: false
+
   datasource:
     url: jdbc:h2:mem:soporte;DB_CLOSE_DELAY=-1
     username: sa

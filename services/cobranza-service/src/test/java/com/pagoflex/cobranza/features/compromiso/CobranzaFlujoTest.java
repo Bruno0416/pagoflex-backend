@@ -11,8 +11,8 @@ import com.pagoflex.cobranza.features.empresa.repository.EjecutivoEmpresaReposit
 import com.pagoflex.cobranza.features.empresa.repository.EmpresaClienteRepository;
 import com.pagoflex.cobranza.features.empresa.service.EjecutivoService;
 import com.pagoflex.cobranza.support.RelojFijo;
-import com.pagoflex.contracts.usuarios.CrearPersonaInterna;
-import com.pagoflex.contracts.usuarios.PersonaInterna;
+import com.pagoflex.cobranza.core.client.CrearPersonaInterna;
+import com.pagoflex.cobranza.core.client.PersonaInterna;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,9 +51,9 @@ class CobranzaFlujoTest {
     private static final UUID U_CAMILA = UUID.randomUUID();
     private static final UUID U_LUIS = UUID.randomUUID();
     private static final PersonaInterna CAMILA = new PersonaInterna(UUID.randomUUID(), "15834207-3",
-            "Camila Andrea", "Rojas Peña", "crojas@correo.ejemplo", "+56 9 0000 0101", U_CAMILA);
+            "Camila Andrea", "Rojas Peña", "crojas@correo.ejemplo", "+56 9 0000 0101", U_CAMILA, null);
     private static final PersonaInterna LUIS = new PersonaInterna(UUID.randomUUID(), "12476318-5",
-            "Luis Alberto", "Muñoz Tapia", "lmunoz@correo.ejemplo", "+56 9 0000 0102", U_LUIS);
+            "Luis Alberto", "Muñoz Tapia", "lmunoz@correo.ejemplo", "+56 9 0000 0102", U_LUIS, null);
 
     @Autowired
     private MockMvc mvc;
@@ -130,7 +130,7 @@ class CobranzaFlujoTest {
         when(usuarios.porRut("20111222-2")).thenReturn(Optional.empty());
         when(usuarios.crear(any(CrearPersonaInterna.class))).thenAnswer(i -> {
             CrearPersonaInterna r = i.getArgument(0);
-            return new PersonaInterna(UUID.randomUUID(), r.rut(), r.nombres(), r.apellidos(), r.correo(), r.telefono(), null);
+            return new PersonaInterna(UUID.randomUUID(), r.rut(), r.nombres(), r.apellidos(), r.correo(), r.telefono(), null, null);
         });
 
         mvc.perform(post("/api/v1/empresas/me/compromisos").header("Authorization", altos())
@@ -318,6 +318,55 @@ class CobranzaFlujoTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.codigo").value("EC-01"));
         mvc.perform(get("/api/v1/internal/empresas/ejecutivos/" + EJ_SIN_EMPRESA).header("X-Internal-Api-Key", CLAVE_INTERNA))
+                .andExpect(status().isNotFound());
+    }
+
+    // ---------- contratos con usuarios y reconocimientos ----------
+    @Test
+    void validaCodigosDeEmpresaParaElRegistro() throws Exception {
+        mvc.perform(post("/api/v1/internal/empresas/codigos/validar").header("X-Internal-Api-Key", CLAVE_INTERNA)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"codigo\":\"AM26EJ\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombreEmpresa").value("Altos del Maipo"))
+                .andExpect(jsonPath("$.tipoEmpresa").value("CLIENTE"))
+                .andExpect(jsonPath("$.rolAutorizado").value("EJECUTIVO"));
+        mvc.perform(post("/api/v1/internal/empresas/codigos/validar").header("X-Internal-Api-Key", CLAVE_INTERNA)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"codigo\":\"PF26AG\"}"))
+                .andExpect(jsonPath("$.tipoEmpresa").value("INTERNA"))
+                .andExpect(jsonPath("$.rolAutorizado").value("AGENTE"));
+        mvc.perform(post("/api/v1/internal/empresas/codigos/validar").header("X-Internal-Api-Key", CLAVE_INTERNA)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"codigo\":\"ZZ99ZZ\"}"))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/api/v1/internal/empresas/codigos/validar").header("X-Internal-Api-Key", CLAVE_INTERNA)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"codigo\":\"am-26\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/v1/internal/empresas/codigos/validar")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"codigo\":\"AM26EJ\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void ejecutivoRegistradoConCodigoUsaLaEmpresaDeSuPersona() throws Exception {
+        UUID nuevo = UUID.randomUUID();
+        UUID bosque = empresaRepo.findByCodigo("EC-02").orElseThrow().getId();
+        when(usuarios.porUsuario(nuevo)).thenReturn(Optional.of(new PersonaInterna(UUID.randomUUID(), "11853720-3",
+                "Marco", "Fuentes", "mfuentes@bosquenativo.ejemplo", null, nuevo, bosque)));
+        mvc.perform(get("/api/v1/empresas/me").header("Authorization", bearer(nuevo, "mfuentes@bosquenativo.ejemplo", "EJECUTIVO")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.codigo").value("EC-02"));
+    }
+
+    @Test
+    void hechosDePagoParaReconocimientos() throws Exception {
+        compromiso("CP-2026-0601", CAMILA, "EC-06", "Cuota social", null, null, 15_000, "2026-10-20", EstadoCompromiso.PENDIENTE);
+        mvc.perform(get("/api/v1/internal/usuarios/" + U_CAMILA + "/hechos-pago").header("X-Internal-Api-Key", CLAVE_INTERNA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.idUsuario").value(U_CAMILA.toString()))
+                .andExpect(jsonPath("$.compromisos", hasSize(1)))
+                .andExpect(jsonPath("$.compromisos[0].folio").value("CP-2026-0601"))
+                .andExpect(jsonPath("$.compromisos[0].estado").value("PENDIENTE"));
+        when(usuarios.porUsuario(EJ_SIN_EMPRESA)).thenReturn(Optional.empty());
+        mvc.perform(get("/api/v1/internal/usuarios/" + EJ_SIN_EMPRESA + "/hechos-pago").header("X-Internal-Api-Key", CLAVE_INTERNA))
                 .andExpect(status().isNotFound());
     }
 

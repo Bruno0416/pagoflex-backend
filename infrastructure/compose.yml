@@ -60,11 +60,11 @@ services:
       mensajeria-service:
         condition: service_healthy
     environment:
-      - PORT=8080
+      - PORT=${API_GATEWAY_PORT:-8080}
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
-    ports: [ '8080:8080' ]
+    ports: [ '${API_GATEWAY_PORT:-8080}:${API_GATEWAY_PORT:-8080}' ]
 
   # ---- EUREKA ----
   eureka-server:
@@ -73,11 +73,11 @@ services:
       dockerfile: services/eureka-server/Dockerfile
     env_file: .env
     environment:
-      - PORT=8761
+      - PORT=${EUREKA_PORT:-8761}
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
-    ports: [ '127.0.0.1:8761:8761' ]
+    ports: [ '127.0.0.1:${EUREKA_PORT:-8761}:${EUREKA_PORT:-8761}' ]
 
   # ---- USUARIOS ----
   usuarios-service:
@@ -93,7 +93,29 @@ services:
       eureka-server:
         condition: service_healthy
     environment:
-      - PORT=8081
+      - PORT=${USUARIOS_PORT:-8081}
+      - AVATAR_STORAGE_DIR=/data/avatars
+    volumes:
+      - usuarios-avatars:/data/avatars
+    healthcheck:
+      <<: *default-healthcheck
+    networks: [ backend ]
+
+  # ---- RECONOCIMIENTOS ----
+  reconocimientos-service:
+    build:
+      context: ..
+      dockerfile: services/reconocimientos-service/Dockerfile
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - PORT=${RECONOCIMIENTOS_PORT:-8086}
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
@@ -108,7 +130,7 @@ services:
       eureka-server:
         condition: service_healthy
     environment:
-      - PORT=8082
+      - PORT=${EMAIL_PORT:-8082}
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
@@ -120,6 +142,8 @@ services:
       dockerfile: services/cobranza-service/Dockerfile
     env_file: .env
     depends_on:
+      redis:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       eureka-server:
@@ -139,6 +163,8 @@ services:
       dockerfile: services/soporte-service/Dockerfile
     env_file: .env
     depends_on:
+      redis:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       eureka-server:
@@ -160,6 +186,8 @@ services:
       dockerfile: services/mensajeria-service/Dockerfile
     env_file: .env
     depends_on:
+      redis:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       eureka-server:
@@ -180,3 +208,4 @@ networks:
 
 volumes:
   mysql-data:
+  usuarios-avatars:

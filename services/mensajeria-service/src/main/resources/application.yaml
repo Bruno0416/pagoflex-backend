@@ -5,6 +5,14 @@ spring:
   application:
     name: mensajeria-service
 
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 3s
+      repositories:
+        enabled: false
+
   datasource:
     url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/${MENSAJERIA_DB}
     username: ${MENSAJERIA_USER}

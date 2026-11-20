@@ -25,7 +25,7 @@ public class EmailServiceClient {
     public void send(SendEmailRequest request) {
         // 1. solicitar el envío al servicio interno
         client.post()
-                .uri("/send")
+                .uri("/enviar")
                 .bodyValue(request)
                 .retrieve()
                 .toBodilessEntity()
