@@ -137,14 +137,14 @@ class AuthServiceImplTest {
     @Test
     void registerAgentWithValidInternalCode() {
         UUID empresa = UUID.randomUUID();
-        when(organizationClient.validate("PF12AG"))
+        when(organizationClient.validate("PF12AG-ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
                 .thenReturn(new ValidateOrganizationCodeResponse(empresa, "PagoFlex",
                         OrganizationType.INTERNA, AuthorizedRole.AGENTE));
         when(personaRepo.saveAndFlush(any(Persona.class))).thenAnswer(inv -> inv.getArgument(0));
         when(encoder.encode("Clave123!")).thenReturn("hash");
 
         service.register(new RegisterRequest("usuario@example.com", "Clave123!", "99999999-9",
-                "Usuario", "Prueba", "PF12AG"));
+                "Usuario", "Prueba", "PF12AG-ABCDEFGHIJKLMNOPQRSTUVWXYZ"));
 
         ArgumentCaptor<Users> user = ArgumentCaptor.forClass(Users.class);
         verify(userRepo).saveAndFlush(user.capture());
@@ -155,13 +155,13 @@ class AuthServiceImplTest {
     @Test
     void registerExecutiveWithValidClientCode() {
         UUID empresa = UUID.randomUUID();
-        when(organizationClient.validate("CL34EX"))
+        when(organizationClient.validate("CL34EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
                 .thenReturn(new ValidateOrganizationCodeResponse(empresa, "Empresa",
                         OrganizationType.CLIENTE, AuthorizedRole.EJECUTIVO));
         when(personaRepo.saveAndFlush(any(Persona.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.register(new RegisterRequest("usuario@example.com", "Clave123!", "99999999-9",
-                "Usuario", "Prueba", "CL34EX"));
+                "Usuario", "Prueba", "CL34EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ"));
 
         ArgumentCaptor<Users> user = ArgumentCaptor.forClass(Users.class);
         verify(userRepo).saveAndFlush(user.capture());
@@ -171,11 +171,11 @@ class AuthServiceImplTest {
 
     @Test
     void rejectsCodeWithMismatchedRoleAndOrganization() {
-        when(organizationClient.validate("CL56EX"))
+        when(organizationClient.validate("CL56EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
                 .thenReturn(new ValidateOrganizationCodeResponse(UUID.randomUUID(), "Empresa",
                         OrganizationType.CLIENTE, AuthorizedRole.AGENTE));
         assertThatThrownBy(() -> service.register(new RegisterRequest(
-                "usuario@example.com", "Clave123!", "99999999-9", "Usuario", "Prueba", "CL56EX")))
+                "usuario@example.com", "Clave123!", "99999999-9", "Usuario", "Prueba", "CL56EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ")))
                 .isInstanceOf(InvalidOrganizationCode.class);
         verify(userRepo, never()).saveAndFlush(any());
     }
@@ -196,10 +196,10 @@ class AuthServiceImplTest {
 
     @Test
     void rejectsUnavailableCobranzaWithoutCreatingStaff() {
-        when(organizationClient.validate("CL56EX"))
+        when(organizationClient.validate("CL56EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
                 .thenThrow(new OrganizationServiceUnavailable());
         assertThatThrownBy(() -> service.register(new RegisterRequest(
-                "usuario@example.com", "Clave123!", "99999999-9", "Usuario", "Prueba", "CL56EX")))
+                "usuario@example.com", "Clave123!", "99999999-9", "Usuario", "Prueba", "CL56EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ")))
                 .isInstanceOf(OrganizationServiceUnavailable.class);
         verify(personaRepo, never()).saveAndFlush(any());
     }

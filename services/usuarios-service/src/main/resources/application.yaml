@@ -37,6 +37,9 @@ pagoflex:
   storage:
     avatars:
       path: ${AVATAR_STORAGE_DIR:./data/avatars}
+  # cuentas de ejemplo de la app para probarla conectada
+  demo:
+    enabled: ${DEMO_DATA:false}
   security:
     internal-api-key: ${INTERNAL_API_KEY}
     jwt:

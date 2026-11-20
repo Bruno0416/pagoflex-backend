@@ -30,7 +30,7 @@ public record RegisterRequest(
         String apellidos,
 
         @Pattern(regexp = ValidateOrganizationCodeRequest.FORMATO,
-                message = "El codigo de empresa debe tener el formato AA00AA")
+                message = "El codigo de empresa no tiene un formato valido")
         String codigoEmpresa
 ) {
 }

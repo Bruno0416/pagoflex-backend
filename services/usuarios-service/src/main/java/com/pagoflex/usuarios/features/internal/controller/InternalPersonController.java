@@ -27,6 +27,16 @@ public class InternalPersonController {
         return ResponseEntity.ok(service.byRut(rut));
     }
 
+    @GetMapping("/por-usuario/{idUsuario}")
+    public ResponseEntity<PersonResponse> byUserId(@PathVariable UUID idUsuario) {
+        return ResponseEntity.ok(service.byUserId(idUsuario));
+    }
+
+    @GetMapping("/por-correo/{correo}")
+    public ResponseEntity<PersonResponse> byEmail(@PathVariable String correo) {
+        return ResponseEntity.ok(service.byEmail(correo));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<PersonResponse> byId(@PathVariable UUID id) {
         return ResponseEntity.ok(service.byId(id));

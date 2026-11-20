@@ -52,6 +52,8 @@ pagoflex-backend/
 │   ├── usuarios-service/    # autenticacion, sesiones y perfiles
 │   ├── email-service/       # envio interno de correos
 │   ├── reconocimientos-service/ # logros por historial de pagos
+│   ├── cobranza-service/    # empresas, compromisos, pagos y comprobantes
+│   ├── soporte-service/     # reportes de cobros y bandeja del agente
 │   └── eureka-server/       # descubrimiento de servicios
 ├── infrastructure/
 │   ├── compose.yml         # contenedores y red interna
@@ -69,14 +71,14 @@ pagoflex-backend/
 | `eureka-server` | Implementado | Registro y descubrimiento de microservicios. |
 | `usuarios-service` | Implementado | Registro, autenticación JWT, sesiones en Redis, recuperación de contraseña, perfil, avatar y consultas internas de personas. |
 | `email-service` | Implementado | Envío interno de correos y plantillas de correo. |
-| `reconocimientos-service` | Implementado; integración pendiente | Reconocimientos por primer pago a tiempo y tres meses al día; consulta hechos de pago de Cobranza a través del contrato interno. |
-| `cobranza-service` | **No implementado** | Empresas, compromisos, cuotas, pagos y comprobantes. |
-| `soporte-service` | **No implementado** | Reportes, asignaciones y seguimiento de casos. |
+| `reconocimientos-service` | Implementado | Reconocimientos por primer pago a tiempo y tres meses al día; consulta hechos de pago de Cobranza y es evaluado tras cada pago. |
+| `cobranza-service` | Implementado | Ejecutivo (`/api/v1/empresas/me`): registro, anulación, lista y resumen mensual. Usuario final (`/api/v1/compromisos/me`): detalle, cotización y pago simulado en orden de cuotas con `Idempotency-Key`, comprobante, historial, anulaciones y cumplimiento. Valida los códigos privados de registro de empresas. Personas vía rutas internas de usuarios. |
+| `soporte-service` | Implementado | Reportes del usuario (`/api/v1/reportes`), bandeja paginada del agente con estados `ABIERTO → ASIGNADO → EN_ATENCION → RESUELTO` e historial, y reportes de su empresa para el ejecutivo (`/api/v1/empresas/me/reportes`). |
 | `mensajeria-service` | **No implementado** | Mensajes asociados a la atención de casos. |
 
-Los servicios del compañero todavía no están integrados en este repositorio. Los contratos compartidos en `libs/contracts` están preparados para la integración con Cobranza, pero **el funcionamiento completo entre servicios requiere realizar y validar ese merge**. El RUT se almacena sin puntos y con guion, por ejemplo `12345678-5`.
+Cobranza y Soporte están integrados con los contratos compartidos de `libs/contracts`. El RUT se almacena sin puntos y con guion, por ejemplo `12345678-5`.
 
-El registro de agentes y ejecutivos usa un código de empresa. Su validación depende de la implementación compatible del contrato en Cobranza.
+El registro de agentes y ejecutivos usa un código de empresa. Su validación la realiza Cobranza (`POST /api/v1/internal/empresas/codigos/validar`) con códigos `AA00AA-<26 caracteres Base32>` almacenados solo como hash BCrypt.
 
 ## Requisitos previos
 
@@ -101,7 +103,7 @@ python3 tools/init_db.py --dry-run
 python3 tools/init_db.py
 ```
 
-La primera orden revisa el entorno sin efectuar cambios; la segunda prepara MySQL y las credenciales de los servicios configurados. **El script no carga los datos del prototipo SQLite ni crea las tablas de negocio.** Actualmente Hibernate administra la creación o actualización de tablas en `usuarios-service` y `reconocimientos-service` mediante `spring.jpa.hibernate.ddl-auto: update`. La estrategia definitiva de esquema y datos se definirá después del merge.
+La primera orden revisa el entorno sin efectuar cambios; la segunda prepara MySQL y las credenciales de los servicios configurados. **El script no carga los datos del prototipo SQLite ni crea las tablas de negocio.** Actualmente Hibernate administra la creación o actualización de tablas en cada servicio mediante `spring.jpa.hibernate.ddl-auto: update`. La estrategia definitiva de esquema y datos se definirá más adelante.
 
 ## Iniciar los servicios
 
@@ -134,5 +136,5 @@ bash ./mvnw -B clean verify
 Para probar solo los módulos modificados y sus dependencias:
 
 ```bash
-bash ./mvnw -B -pl services/usuarios-service,services/reconocimientos-service -am test
+bash ./mvnw -B -pl services/usuarios-service,services/cobranza-service -am test
 ```

@@ -2,6 +2,9 @@ package com.pagoflex.usuarios.features.internal.service;
 
 import com.pagoflex.usuarios.features.auth.exceptions.InvalidRut;
 import com.pagoflex.usuarios.features.auth.exceptions.RutAlreadyInUse;
+import com.pagoflex.usuarios.core.security.Role;
+import com.pagoflex.usuarios.features.auth.entity.Users;
+import com.pagoflex.usuarios.features.auth.repository.UserRepository;
 import com.pagoflex.usuarios.features.internal.dto.request.CreatePersonRequest;
 import com.pagoflex.usuarios.features.internal.exceptions.PersonNotFound;
 import com.pagoflex.usuarios.features.profile.entity.Persona;
@@ -22,6 +25,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class InternalPersonServiceTest {
     @Mock PersonaRepository repo;
+    @Mock UserRepository userRepo;
     @InjectMocks InternalPersonService service;
 
     // ---------- crear persona sin cuenta ----------
@@ -69,5 +73,48 @@ class InternalPersonServiceTest {
     void returnsNotFoundForUnknownPerson() {
         assertThatThrownBy(() -> service.byRut("99999999-9")).isInstanceOf(PersonNotFound.class);
         assertThatThrownBy(() -> service.byId(UUID.randomUUID())).isInstanceOf(PersonNotFound.class);
+    }
+
+    @Test
+    void createsPersonWithoutContactEmail() {
+        when(repo.saveAndFlush(any(Persona.class))).thenAnswer(inv -> inv.getArgument(0));
+        var result = service.create(new CreatePersonRequest("99999999-9", "Usuario", "Prueba", null, "+56912345678"));
+        assertThat(result.correoContacto()).isNull();
+        assertThat(result.idUsuario()).isNull();
+    }
+
+    // ---------- personas con cuenta ----------
+    @Test
+    void findsPersonByUserIdWithAccountData() {
+        Persona persona = Persona.builder().id(UUID.randomUUID()).rut("99999999-9").build();
+        Users user = Users.builder().id(UUID.randomUUID()).email("a@b.cl").role(Role.USUARIO_FINAL).persona(persona).build();
+        when(userRepo.findById(user.getId())).thenReturn(Optional.of(user));
+        var result = service.byUserId(user.getId());
+        assertThat(result.idPersona()).isEqualTo(persona.getId());
+        assertThat(result.idUsuario()).isEqualTo(user.getId());
+        assertThat(result.correoCuenta()).isEqualTo("a@b.cl");
+    }
+
+    @Test
+    void findsPersonByAccountEmail() {
+        Persona persona = Persona.builder().id(UUID.randomUUID()).rut("99999999-9").build();
+        Users user = Users.builder().id(UUID.randomUUID()).email("a@b.cl").role(Role.USUARIO_FINAL).persona(persona).build();
+        when(userRepo.findByEmail("a@b.cl")).thenReturn(Optional.of(user));
+        assertThat(service.byEmail(" A@B.cl ").idUsuario()).isEqualTo(user.getId());
+    }
+
+    @Test
+    void personByIdIncludesAccountWhenItExists() {
+        Persona persona = Persona.builder().id(UUID.randomUUID()).rut("99999999-9").build();
+        Users user = Users.builder().id(UUID.randomUUID()).email("a@b.cl").role(Role.USUARIO_FINAL).persona(persona).build();
+        when(repo.findById(persona.getId())).thenReturn(Optional.of(persona));
+        when(userRepo.findByPersona_Id(persona.getId())).thenReturn(Optional.of(user));
+        assertThat(service.byId(persona.getId()).idUsuario()).isEqualTo(user.getId());
+    }
+
+    @Test
+    void unknownAccountIsNotFound() {
+        assertThatThrownBy(() -> service.byUserId(UUID.randomUUID())).isInstanceOf(PersonNotFound.class);
+        assertThatThrownBy(() -> service.byEmail("x@y.cl")).isInstanceOf(PersonNotFound.class);
     }
 }
