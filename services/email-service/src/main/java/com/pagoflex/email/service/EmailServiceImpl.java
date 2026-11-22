@@ -1,6 +1,6 @@
 package com.pagoflex.email.service;
 
-import com.pagoflex.contracts.email.SendEmailRequest;
+import com.pagoflex.contracts.correo.SolicitudEnvioCorreo;
 import com.pagoflex.core.error.PagoFlexException;
 import com.pagoflex.email.theme.EmailTheme;
 import jakarta.mail.MessagingException;
@@ -29,7 +29,7 @@ public class EmailServiceImpl implements EmailService {
     private String fromAddress;
 
     @Override
-    public void send(SendEmailRequest request) {
+    public void send(SolicitudEnvioCorreo request) {
         // 1. validar las variables que necesita el tipo de correo
         for (String variable : request.type().requiredVariables()) {
             String value = request.variables().get(variable);

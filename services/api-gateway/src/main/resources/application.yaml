@@ -1,11 +1,21 @@
 server:
-  port: 8080
+  port: ${API_GATEWAY_PORT:8080}
   forward-headers-strategy: none
 
 spring:
   application:
     name: api-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 3s
+      repositories:
+        enabled: false
   cloud:
+    loadbalancer:
+      cache:
+        enabled: false   # eureka ya mantiene el registro en memoria; no se agrega caffeine
     gateway:
       server:
         webmvc:
@@ -18,25 +28,43 @@ spring:
               uri: lb://usuarios-service
               predicates:
                 - Path=/api/v1/usuarios/**
+            - id: reconocimientos-service
+              uri: lb://reconocimientos-service
+              predicates:
+                - Path=/api/v1/reconocimientos/**
+            - id: mensajeria-service
+              uri: lb://mensajeria-service
+              predicates:
+                - Path=/api/v1/conversaciones/**
+            # soporte va antes que cobranza: comparte el prefijo /api/v1/empresas/me
+            - id: soporte-service
+              uri: lb://soporte-service
+              predicates:
+                - Path=/api/v1/reportes,/api/v1/reportes/**,/api/v1/empresas/me/reportes,/api/v1/empresas/me/reportes/**,/api/v1/empresas/me/compromisos/*/reporte-activo
+            - id: cobranza-service
+              uri: lb://cobranza-service
+              predicates:
+                - Path=/api/v1/compromisos/**,/api/v1/pagos/**,/api/v1/comprobantes/**,/api/v1/anulaciones/**,/api/v1/cumplimiento/**,/api/v1/empresas/me,/api/v1/empresas/me/**
 
 pagoflex:
   security:
     jwt:
       secret: ${JWT_SECRET}
     public-paths:
-      - /api/v1/auth/login
-      - /api/v1/auth/register
-      - /api/v1/auth/recovery
-      - /api/v1/auth/recovery/verify
-      - /api/v1/auth/recovery/resend
-      - /api/v1/auth/recovery/reset
+      - /api/v1/auth/iniciar-sesion
+      - /api/v1/auth/registro
+      - /api/v1/auth/renovar
+      - /api/v1/auth/recuperacion
+      - /api/v1/auth/recuperacion/verificar
+      - /api/v1/auth/recuperacion/reenviar
+      - /api/v1/auth/recuperacion/restablecer
       - /actuator/health
 
 
 eureka:
   client:
     service-url:
-      defaultZone: http://admin:${EUREKA_ADMIN_PASSWD}@eureka-server:8761/eureka/
+      defaultZone: http://admin:${EUREKA_ADMIN_PASSWD}@eureka-server:${EUREKA_PORT:8761}/eureka/
   instance:
     prefer-ip-address: true
 

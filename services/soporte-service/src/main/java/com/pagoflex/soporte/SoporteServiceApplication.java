@@ -1,0 +1,14 @@
+package com.pagoflex.soporte;
+
+import com.pagoflex.web.error.GlobalExceptionHandler;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Import;
+
+@SpringBootApplication
+@Import(GlobalExceptionHandler.class)
+public class SoporteServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(SoporteServiceApplication.class, args);
+    }
+}

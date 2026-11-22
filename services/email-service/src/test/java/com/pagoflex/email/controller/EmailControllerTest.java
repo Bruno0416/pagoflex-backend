@@ -1,7 +1,7 @@
 package com.pagoflex.email.controller;
 
-import com.pagoflex.contracts.email.EmailType;
-import com.pagoflex.contracts.email.SendEmailRequest;
+import com.pagoflex.contracts.correo.TipoCorreo;
+import com.pagoflex.contracts.correo.SolicitudEnvioCorreo;
 import com.pagoflex.core.error.PagoFlexException;
 import com.pagoflex.email.config.SecurityConfig;
 import com.pagoflex.email.service.EmailService;
@@ -40,7 +40,7 @@ class EmailControllerTest {
     @MockitoBean
     private EmailService service;
 
-    private static final String ENDPOINT = "/api/v1/email/internal/send";
+    private static final String ENDPOINT = "/api/v1/email/internal/enviar";
     private static final String INTERNAL_KEY = "test-only-internal-api-key";
     private static final String VALID_REQUEST = """
             {"to":"usuario@example.com","type":"RECOVERY","variables":{"code":"ABC123"}}
@@ -72,7 +72,7 @@ class EmailControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_REQUEST))
                 .andExpect(status().isOk());
-        verify(service).send(new SendEmailRequest("usuario@example.com", EmailType.RECOVERY,
+        verify(service).send(new SolicitudEnvioCorreo("usuario@example.com", TipoCorreo.RECOVERY,
                 Map.of("code", "ABC123")));
     }
 
@@ -127,7 +127,7 @@ class EmailControllerTest {
     @Test
     void propagatesMailDeliveryFailuresAs502() throws Exception {
         doThrow(new PagoFlexException(HttpStatus.BAD_GATEWAY.value(), "No fue posible enviar el correo"))
-                .when(service).send(any(SendEmailRequest.class));
+                .when(service).send(any(SolicitudEnvioCorreo.class));
 
         mvc.perform(post(ENDPOINT)
                         .header("X-Internal-Api-Key", INTERNAL_KEY)

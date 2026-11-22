@@ -1,0 +1,60 @@
+server:
+  port: ${MENSAJERIA_PORT:8085}
+
+spring:
+  application:
+    name: mensajeria-service
+
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 3s
+      repositories:
+        enabled: false
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/${MENSAJERIA_DB}
+    username: ${MENSAJERIA_USER}
+    password: ${MENSAJERIA_PASS}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+  # las conexiones sse quedan abiertas; sin límite de tiempo en el hilo asíncrono
+  mvc:
+    async:
+      request-timeout: -1
+
+pagoflex:
+  zona-horaria: America/Santiago
+  security:
+    internal-api-key: ${INTERNAL_API_KEY}
+    jwt:
+      secret: ${JWT_SECRET}
+    public-paths:
+      - /actuator/health
+
+soporte-service:
+  api:
+    base-url: ${SOPORTE_API_URL:http://soporte-service:${SOPORTE_PORT:8084}/api/v1/internal}
+
+cobranza-service:
+  api:
+    base-url: ${COBRANZA_API_URL:http://cobranza-service:${COBRANZA_PORT:8083}/api/v1/internal}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://admin:${EUREKA_ADMIN_PASSWD}@eureka-server:${EUREKA_PORT:8761}/eureka/
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

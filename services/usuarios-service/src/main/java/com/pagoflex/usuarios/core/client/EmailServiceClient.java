@@ -1,6 +1,6 @@
 package com.pagoflex.usuarios.core.client;
 
-import com.pagoflex.contracts.email.SendEmailRequest;
+import com.pagoflex.contracts.correo.SolicitudEnvioCorreo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,10 +22,10 @@ public class EmailServiceClient {
                 .build();
     }
 
-    public void send(SendEmailRequest request) {
+    public void send(SolicitudEnvioCorreo request) {
         // 1. solicitar el envío al servicio interno
         client.post()
-                .uri("/send")
+                .uri("/enviar")
                 .bodyValue(request)
                 .retrieve()
                 .toBodilessEntity()

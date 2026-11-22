@@ -1,0 +1,41 @@
+{
+  "idUsuario": "3f1c2b9e-6a1d-4c39-9b55-0d6f6f1f2a10",
+  "generadoEn": "2026-10-06T09:00:00-03:00",
+  "compromisos": [
+    {
+      "idCompromiso": "0c7d6a1e-2b53-4f6e-8a41-1d9f0b7c3e01",
+      "folio": "CP-2026-0101",
+      "fechaVencimiento": "2026-07-05",
+      "estado": "PAGADO",
+      "pago": {"numeroComprobante": "CMP-2026-0101", "fechaHoraPago": "2026-07-04T18:20:00-04:00"}
+    },
+    {
+      "idCompromiso": "5b1e9c42-7d10-4a83-b2f6-3a4c8d9e0f12",
+      "folio": "CP-2026-0125",
+      "fechaVencimiento": "2026-08-05",
+      "estado": "PAGADO",
+      "pago": {"numeroComprobante": "CMP-2026-0125", "fechaHoraPago": "2026-08-05T09:00:00-04:00"}
+    },
+    {
+      "idCompromiso": "9a3f7d15-c6b2-4e08-8d57-2f1b0c4a6e33",
+      "folio": "CP-2026-0150",
+      "fechaVencimiento": "2026-08-20",
+      "estado": "ANULADO",
+      "pago": null
+    },
+    {
+      "idCompromiso": "e2d84b60-1f97-4c35-a0b9-7c5e3d2f1a44",
+      "folio": "CP-2026-0180",
+      "fechaVencimiento": "2026-09-05",
+      "estado": "PAGADO",
+      "pago": {"numeroComprobante": "CMP-2026-0180", "fechaHoraPago": "2026-09-03T12:00:00-04:00"}
+    },
+    {
+      "idCompromiso": "4c6a2e91-8b3d-4f70-9e15-0d7a1b2c3f55",
+      "folio": "CP-2026-0210",
+      "fechaVencimiento": "2026-10-25",
+      "estado": "PENDIENTE",
+      "pago": null
+    }
+  ]
+}

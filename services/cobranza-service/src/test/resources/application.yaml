@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: cobranza-service
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      repositories:
+        enabled: false
+
+  datasource:
+    url: jdbc:h2:mem:cobranza;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ''
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+eureka:
+  client:
+    enabled: false
+
+pagoflex:
+  security:
+    internal-api-key: test-only-internal-api-key
+    jwt:
+      secret: test-only-jwt-secret-that-has-at-least-32-bytes
+    public-paths:
+      - /actuator/health
+
+usuarios-service:
+  api:
+    base-url: http://localhost:65530/api/v1/usuarios/internal
+
+reconocimientos-service:
+  api:
+    base-url: http://localhost:65531/api/v1/internal/reconocimientos

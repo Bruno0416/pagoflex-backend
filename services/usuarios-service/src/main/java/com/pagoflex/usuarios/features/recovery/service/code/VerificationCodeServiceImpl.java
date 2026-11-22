@@ -1,6 +1,6 @@
 package com.pagoflex.usuarios.features.recovery.service.code;
 
-import com.pagoflex.contracts.email.CodeType;
+import com.pagoflex.contracts.correo.TipoCodigo;
 import com.pagoflex.usuarios.core.cache.ExpiringCache;
 import com.pagoflex.usuarios.core.cache.RedisTransactionExecutor;
 import com.pagoflex.usuarios.features.recovery.exceptions.InvalidRecoveryCode;
@@ -23,6 +23,8 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String CODE_PREFIX = "pagoflex:auth:code:";
     private static final String ACTIVE_PREFIX = "pagoflex:auth:active:";
+    private static final String ATTEMPTS_PREFIX = "pagoflex:auth:attempts:";
+    private static final int MAX_FAILED_ATTEMPTS = 5;
     private static final String TOKEN_PREFIX = "pagoflex:auth:reset:";
 
     private final RedisTransactionExecutor transactions;
@@ -36,21 +38,23 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 
     // ---------- generación de códigos ----------
     @Override
-    public String generateCode(String email, CodeType type) {
+    public String generateCode(String email, TipoCodigo type) {
         // 1. generar código y preparar claves con su expiración
         Duration expiration = Duration.ofSeconds(seconds(codeExpirationMinutes));
         String code = CodeGeneratorUtil.generateCode();
         String reference = reference(email, type);
         String codeKey = CODE_PREFIX + reference;
         String activeKey = ACTIVE_PREFIX + reference;
+        String attemptsKey = ATTEMPTS_PREFIX + reference;
 
         // 2. reemplazar el código e invalidar el token activo en una transacción redis
         Boolean stored = transactions.execute(operations -> {
             List<Object> results = transactions.commit(operations, () -> {
                 operations.delete(activeKey);
+                operations.delete(attemptsKey);
                 operations.opsForValue().set(codeKey, digest(code), expiration);
             });
-            return results != null && results.size() == 2;
+            return results != null && results.size() == 3;
         });
         // 3. rechazar el registro si la transacción no se confirma
         if (!Boolean.TRUE.equals(stored)) {
@@ -61,13 +65,14 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 
     // ---------- verificación de códigos ----------
     @Override
-    public String verifyCodeAndIssueResetToken(String email, CodeType type, String submittedCode) {
+    public String verifyCodeAndIssueResetToken(String email, TipoCodigo type, String submittedCode) {
         // 1. normalizar el código y preparar las claves de verificación
         Duration expiration = Duration.ofSeconds(seconds(resetExpirationMinutes));
         String normalized = submittedCode == null ? "" : submittedCode.trim().toUpperCase(Locale.ROOT);
         String reference = reference(email, type);
         String codeKey = CODE_PREFIX + reference;
         String activeKey = ACTIVE_PREFIX + reference;
+        String attemptsKey = ATTEMPTS_PREFIX + reference;
 
         // 2. generar un token temporal para recuperar la contraseña
         byte[] bytes = new byte[32];
@@ -78,17 +83,31 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 
         // 3. verificar y consumir el código de forma atomica antes de emitir el token
         Boolean verified = transactions.execute(operations -> {
-            operations.watch(List.of(codeKey, activeKey));
+            operations.watch(List.of(codeKey, activeKey, attemptsKey));
             try {
+                String storedAttempts = operations.opsForValue().get(attemptsKey);
+                int attempts = failedAttempts(storedAttempts);
+                if (attempts >= MAX_FAILED_ATTEMPTS) return false;
+
                 if (!Objects.equals(operations.opsForValue().get(codeKey), digest(normalized))) {
+                    // Registrar el fallo con WATCH/MULTI: evita perder incrementos concurrentes.
+                    transactions.commit(operations, () -> {
+                        operations.opsForValue().set(attemptsKey, Integer.toString(attempts + 1),
+                                Duration.ofSeconds(seconds(codeExpirationMinutes)));
+                        if (attempts + 1 >= MAX_FAILED_ATTEMPTS) {
+                            // Invalidar el codigo tras el quinto fallo, incluso si llega a acertarse despues.
+                            operations.delete(codeKey);
+                        }
+                    });
                     return false;
                 }
                 List<Object> results = transactions.commit(operations, () -> {
                     operations.delete(codeKey);
+                    operations.delete(attemptsKey);
                     operations.opsForValue().set(tokenKey, email, expiration);
                     operations.opsForValue().set(activeKey, tokenHash, expiration);
                 });
-                return results != null && results.size() == 3;
+                return results != null && results.size() == 4;
             } finally {
                 operations.unwatch();
             }
@@ -118,7 +137,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         }
         // 4. validar y consumir el token y su referencia activa en una transacción
         String consumedEmail = transactions.execute(operations -> {
-            String activeKey = ACTIVE_PREFIX + reference(email, CodeType.RECOVERY);
+            String activeKey = ACTIVE_PREFIX + reference(email, TipoCodigo.RECOVERY);
             operations.watch(List.of(tokenKey, activeKey));
             try {
                 if (!email.equals(operations.opsForValue().get(tokenKey))
@@ -141,7 +160,17 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
     }
 
     // --- helpers ---
-    private static String reference(String email, CodeType type) {
+    private static int failedAttempts(String stored) {
+        if (stored == null) return 0;
+        try {
+            int value = Integer.parseInt(stored);
+            return value < 0 ? MAX_FAILED_ATTEMPTS : value;
+        } catch (NumberFormatException ex) {
+            return MAX_FAILED_ATTEMPTS;
+        }
+    }
+
+    private static String reference(String email, TipoCodigo type) {
         return digest(type.name() + ":" + email);
     }
 

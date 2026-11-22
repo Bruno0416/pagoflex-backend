@@ -9,9 +9,41 @@ x-healthcheck-template: &default-healthcheck
   start_period: 40s
 
 services:
+  db-init:
+    networks:
+      - backend
+    image: mysql:8.4
+    restart: "no"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: ${DB_USER:?Falta DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD}
+      USUARIOS_DB: ${USUARIOS_DB:?Falta USUARIOS_DB}
+      USUARIOS_USER: ${USUARIOS_USER:?Falta USUARIOS_USER}
+      USUARIOS_PASS: ${USUARIOS_PASS:?Falta USUARIOS_PASS}
+      COBRANZA_DB: ${COBRANZA_DB:?Falta COBRANZA_DB}
+      COBRANZA_USER: ${COBRANZA_USER:?Falta COBRANZA_USER}
+      COBRANZA_PASS: ${COBRANZA_PASS:?Falta COBRANZA_PASS}
+      RECONOCIMIENTOS_DB: ${RECONOCIMIENTOS_DB:?Falta RECONOCIMIENTOS_DB}
+      RECONOCIMIENTOS_USER: ${RECONOCIMIENTOS_USER:?Falta RECONOCIMIENTOS_USER}
+      RECONOCIMIENTOS_PASS: ${RECONOCIMIENTOS_PASS:?Falta RECONOCIMIENTOS_PASS}
+      SOPORTE_DB: ${SOPORTE_DB:?Falta SOPORTE_DB}
+      SOPORTE_USER: ${SOPORTE_USER:?Falta SOPORTE_USER}
+      SOPORTE_PASS: ${SOPORTE_PASS:?Falta SOPORTE_PASS}
+      MENSAJERIA_DB: ${MENSAJERIA_DB:?Falta MENSAJERIA_DB}
+      MENSAJERIA_USER: ${MENSAJERIA_USER:?Falta MENSAJERIA_USER}
+      MENSAJERIA_PASS: ${MENSAJERIA_PASS:?Falta MENSAJERIA_PASS}
+    volumes:
+      - ./db-init/init.sh:/opt/pagoflex/init.sh:ro
+    entrypoint: ["/bin/bash", "/opt/pagoflex/init.sh"]
+
   # ---- MYSQL ----
   mysql:
-    image: mysql:8.4.11
+    image: mysql:8.4
     command: [ "--partial-revokes=ON" ]
     env_file: .env
     environment:
@@ -53,12 +85,20 @@ services:
         condition: service_healthy
       email-service:
         condition: service_healthy
+      cobranza-service:
+        condition: service_healthy
+      soporte-service:
+        condition: service_healthy
+      reconocimientos-service:
+        condition: service_healthy
+      mensajeria-service:
+        condition: service_healthy
     environment:
-      - PORT=8080
+      - PORT=${API_GATEWAY_PORT:-8080}
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
-    ports: [ '8080:8080' ]
+    ports: [ '${API_GATEWAY_PORT:-8080}:${API_GATEWAY_PORT:-8080}' ]
 
   # ---- EUREKA ----
   eureka-server:
@@ -67,11 +107,11 @@ services:
       dockerfile: services/eureka-server/Dockerfile
     env_file: .env
     environment:
-      - PORT=8761
+      - PORT=${EUREKA_PORT:-8761}
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
-    ports: [ '127.0.0.1:8761:8761' ]
+    ports: [ '127.0.0.1:${EUREKA_PORT:-8761}:${EUREKA_PORT:-8761}' ]
 
   # ---- USUARIOS ----
   usuarios-service:
@@ -86,11 +126,41 @@ services:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
     environment:
-      - PORT=8081
+      - PORT=${USUARIOS_PORT:-8081}
+      - AVATAR_STORAGE_DIR=/data/avatars
+    volumes:
+      - usuarios-avatars:/data/avatars
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
+    ports:
+      - "${USUARIOS_PORT:-8081}:${USUARIOS_PORT:-8081}"
+
+  # ---- RECONOCIMIENTOS ----
+  reconocimientos-service:
+    build:
+      context: ..
+      dockerfile: services/reconocimientos-service/Dockerfile
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      - PORT=${RECONOCIMIENTOS_PORT:-8086}
+    healthcheck:
+      <<: *default-healthcheck
+    networks: [ backend ]
+    ports:
+      - "${RECONOCIMIENTOS_PORT:-8086}:${RECONOCIMIENTOS_PORT:-8086}"
 
   # ---- EMAIL ----
   email-service:
@@ -102,10 +172,91 @@ services:
       eureka-server:
         condition: service_healthy
     environment:
-      - PORT=8082
+      - PORT=${EMAIL_PORT:-8082}
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
+    ports:
+      - "${EMAIL_PORT:-8082}:${EMAIL_PORT:-8082}"
+
+  # ---- COBRANZA ----
+  cobranza-service:
+    build:
+      context: ..
+      dockerfile: services/cobranza-service/Dockerfile
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      usuarios-service:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      - PORT=${COBRANZA_PORT:-8083}
+    healthcheck:
+      <<: *default-healthcheck
+    networks: [ backend ]
+    ports:
+      - "${COBRANZA_PORT:-8083}:${COBRANZA_PORT:-8083}"
+
+  # ---- SOPORTE ----
+  soporte-service:
+    build:
+      context: ..
+      dockerfile: services/soporte-service/Dockerfile
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      usuarios-service:
+        condition: service_healthy
+      cobranza-service:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      - PORT=${SOPORTE_PORT:-8084}
+    healthcheck:
+      <<: *default-healthcheck
+    networks: [ backend ]
+    ports:
+      - "${SOPORTE_PORT:-8084}:${SOPORTE_PORT:-8084}"
+
+  # ---- MENSAJERIA ----
+  mensajeria-service:
+    build:
+      context: ..
+      dockerfile: services/mensajeria-service/Dockerfile
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      soporte-service:
+        condition: service_healthy
+      cobranza-service:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      - PORT=${MENSAJERIA_PORT:-8085}
+    healthcheck:
+      <<: *default-healthcheck
+    networks: [ backend ]
+    ports:
+      - "${MENSAJERIA_PORT:-8085}:${MENSAJERIA_PORT:-8085}"
 
 networks:
   backend:
@@ -113,3 +264,4 @@ networks:
 
 volumes:
   mysql-data:
+  usuarios-avatars:
