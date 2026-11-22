@@ -164,10 +164,14 @@ class ComposeMySQL:
         client += ["--user=" + user]
         # 1. pasar la clave por la entrada estándar sin exponerla
         shell = 'IFS= read -r MYSQL_PWD; export MYSQL_PWD; exec "$@"'
+        entrada = secret + "\nSET SESSION sql_mode = 'NO_BACKSLASH_ESCAPES';\n" + sql + "\n"
         try:
-            return subprocess.run(self.command + ["exec", "-T", "mysql", "sh", "-c", shell, "init-db", *client],
-                                  input=secret + "\nSET SESSION sql_mode = 'NO_BACKSLASH_ESCAPES';\n" + sql + "\n",
-                                  env=self.env, capture_output=True, text=True, timeout=30)
+            # 2. en windows el modo texto cambia \n por \r\n y la clave llega con \r: se envían bytes
+            proc = subprocess.run(self.command + ["exec", "-T", "mysql", "sh", "-c", shell, "init-db", *client],
+                                  input=entrada.encode("utf-8"), env=self.env, capture_output=True, timeout=30)
+            return subprocess.CompletedProcess(proc.args, proc.returncode,
+                                               proc.stdout.decode("utf-8", "replace"),
+                                               proc.stderr.decode("utf-8", "replace"))
         except subprocess.TimeoutExpired as exc:
             raise InitError("Timed out communicating with MySQL") from exc
 

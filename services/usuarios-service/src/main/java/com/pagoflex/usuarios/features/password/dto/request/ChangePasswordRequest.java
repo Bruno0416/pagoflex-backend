@@ -4,11 +4,13 @@ import com.pagoflex.usuarios.core.validation.StrongPassword;
 import jakarta.validation.constraints.NotBlank;
 
 public record ChangePasswordRequest(
-        @NotBlank
-        String changeToken,
+        @NotBlank(message = "La contrasena actual es obligatoria")
+        String contrasenaActual,
 
-        @NotBlank
+        @NotBlank(message = "La nueva contrasena es obligatoria")
         @StrongPassword
-        String newPassword
-) {
-}
+        String nuevaContrasena,
+
+        @NotBlank(message = "La confirmacion de contrasena es obligatoria")
+        String confirmacionContrasena
+) {}

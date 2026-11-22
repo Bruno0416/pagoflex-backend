@@ -1,6 +1,10 @@
 spring:
   application:
     name: email-service
+  cloud:
+    loadbalancer:
+      cache:
+        enabled: false
   mail:
     host: smtp.gmail.com
     port: 587

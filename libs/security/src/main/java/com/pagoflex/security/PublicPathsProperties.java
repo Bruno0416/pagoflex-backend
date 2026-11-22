@@ -4,7 +4,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;
 
-/// Rutas que no requieren JWT, declaradas por servicio desde application.yaml
 @ConfigurationProperties(prefix = "pagoflex.security")
 public record PublicPathsProperties(List<String> publicPaths) {
     public PublicPathsProperties {

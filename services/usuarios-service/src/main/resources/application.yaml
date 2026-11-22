@@ -1,9 +1,13 @@
 server:
-  port: 8081
+  port: ${USUARIOS_PORT:8081}
 
 spring:
   application:
     name: usuarios-service
+  cloud:
+    loadbalancer:
+      cache:
+        enabled: false   # eureka ya mantiene el registro en memoria; no se agrega caffeine
 
   data:
     redis:
@@ -12,6 +16,11 @@ spring:
       timeout: 3s
       repositories:
         enabled: false
+
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
 
   datasource:
     url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/${USUARIOS_DB}
@@ -25,18 +34,30 @@ spring:
     open-in-view: false
 
 pagoflex:
+  storage:
+    avatars:
+      path: ${AVATAR_STORAGE_DIR:./data/avatars}
+  # cuentas de ejemplo de la app para probarla conectada
+  demo:
+    enabled: ${DEMO_DATA:false}
   security:
     internal-api-key: ${INTERNAL_API_KEY}
     jwt:
       secret: ${JWT_SECRET}
       expiration: ${JWT_EXPIRATION}
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:7d}
     public-paths:
-      - /api/v1/auth/login
-      - /api/v1/auth/register
-      - /api/v1/auth/recovery
-      - /api/v1/auth/recovery/verify
-      - /api/v1/auth/recovery/resend
-      - /api/v1/auth/recovery/reset
+      - /swagger-ui.html
+      - /swagger-ui/**
+      - /v3/api-docs
+      - /v3/api-docs/**
+      - /api/v1/auth/iniciar-sesion
+      - /api/v1/auth/registro
+      - /api/v1/auth/renovar
+      - /api/v1/auth/recuperacion
+      - /api/v1/auth/recuperacion/verificar
+      - /api/v1/auth/recuperacion/reenviar
+      - /api/v1/auth/recuperacion/restablecer
       - /actuator/health
 
 verification:
@@ -45,14 +66,18 @@ verification:
   reset:
     expiration-minutes: ${RESET_TOKEN_EXPIRATION_MINUTES}
 
+cobranza-service:
+  api:
+    base-url: ${COBRANZA_API_URL:http://cobranza-service:${COBRANZA_PORT:8083}/api/v1/internal/empresas}
+
 email-service:
   api:
-    base-url: http://email-service:8082/api/v1/email/internal
+    base-url: http://email-service:${EMAIL_PORT:8082}/api/v1/email/internal
 
 eureka:
   client:
     service-url:
-      defaultZone: http://admin:${EUREKA_ADMIN_PASSWD}@eureka-server:8761/eureka/
+      defaultZone: http://admin:${EUREKA_ADMIN_PASSWD}@eureka-server:${EUREKA_PORT:8761}/eureka/
   instance:
     prefer-ip-address: true
 

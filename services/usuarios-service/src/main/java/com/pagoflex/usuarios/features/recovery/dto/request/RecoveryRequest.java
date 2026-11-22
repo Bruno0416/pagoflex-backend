@@ -6,5 +6,5 @@ import jakarta.validation.constraints.NotBlank;
 public record RecoveryRequest(
         @NotBlank(message = "El correo es obligatorio")
         @Email(message = "Debe ser un correo válido: email@example.com")
-        String email) {
+        String correo) {
 }

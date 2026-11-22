@@ -1,0 +1,4 @@
+# scripts que corren dentro de linux (docker) siempre con fin de línea LF
+mvnw text eol=lf
+*.sh text eol=lf
+mvnw.cmd text eol=crlf

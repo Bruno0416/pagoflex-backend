@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: mensajeria-service
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      repositories:
+        enabled: false
+
+  datasource:
+    url: jdbc:h2:mem:mensajeria;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ''
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+eureka:
+  client:
+    enabled: false
+
+pagoflex:
+  security:
+    internal-api-key: test-only-internal-api-key
+    jwt:
+      secret: test-only-jwt-secret-that-has-at-least-32-bytes
+    public-paths:
+      - /actuator/health
+
+soporte-service:
+  api:
+    base-url: http://localhost:0/api/v1/internal
+
+cobranza-service:
+  api:
+    base-url: http://localhost:0/api/v1/internal

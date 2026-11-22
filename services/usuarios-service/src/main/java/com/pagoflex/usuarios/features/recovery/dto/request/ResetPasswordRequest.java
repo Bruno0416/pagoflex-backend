@@ -1,11 +1,11 @@
 package com.pagoflex.usuarios.features.recovery.dto.request;
 
+import com.pagoflex.usuarios.core.validation.StrongPassword;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
 public record ResetPasswordRequest(
-        @NotBlank(message = "El token de restablecimiento es obligatorio") String resetToken,
+        @NotBlank(message = "El token de restablecimiento es obligatorio") String tokenRestablecimiento,
         @NotBlank(message = "La nueva contraseña es obligatoria")
-        @Size(min = 8, message = "La nueva contraseña debe tener al menos 8 caracteres")
-        String newPassword) {
+        @StrongPassword
+        String nuevaContrasena) {
 }

@@ -1,6 +1,10 @@
 spring:
   application:
     name: eureka-server
+  cloud:
+    loadbalancer:
+      cache:
+        enabled: false
   security:
     user:
       name: admin

@@ -1,33 +1,22 @@
 package com.pagoflex.usuarios.features.password.controller;
 
 import com.pagoflex.usuarios.features.password.dto.request.ChangePasswordRequest;
-import com.pagoflex.usuarios.features.password.dto.request.VerifyCurrentPasswordRequest;
-import com.pagoflex.usuarios.features.password.dto.response.VerifyCurrentPasswordResponse;
-import com.pagoflex.usuarios.features.password.service.PasswordService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
-@RestController
-@RequestMapping("/api/v1/usuarios/me/password")
-@RequiredArgsConstructor
-public class PasswordController {
+@Tag(name = "Password")
+public interface PasswordController {
 
-    private final PasswordService service;
-
-    @PostMapping("/verify")
-    public ResponseEntity<VerifyCurrentPasswordResponse> verify(
-            @Valid @RequestBody VerifyCurrentPasswordRequest request
-    ) {
-        return ResponseEntity.ok(service.verifyCurrentPassword(request));
-    }
-
+    @Operation(summary = "Cambiar contraseña")
+    @ApiResponse(responseCode = "204", description = "Operación exitosa")
+    @ApiResponse(responseCode = "400", description = "Solicitud inválida")
+    @SecurityRequirement(name = "bearerAuth")
     @PutMapping
-    public ResponseEntity<Void> change(
-            @Valid @RequestBody ChangePasswordRequest request
-    ) {
-        service.changePassword(request);
-        return ResponseEntity.noContent().build();
-    }
+    ResponseEntity<Void> change(@Valid @RequestBody ChangePasswordRequest request);
+
 }

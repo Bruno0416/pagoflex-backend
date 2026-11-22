@@ -1,7 +1,6 @@
 package com.pagoflex.usuarios.features.recovery.controller;
 
 import com.pagoflex.usuarios.features.recovery.dto.request.RecoveryRequest;
-import com.pagoflex.usuarios.features.recovery.dto.request.ResendRecoveryCodeRequest;
 import com.pagoflex.usuarios.features.recovery.dto.request.ResetPasswordRequest;
 import com.pagoflex.usuarios.features.recovery.dto.request.VerifyCodeRequest;
 import com.pagoflex.usuarios.features.recovery.dto.response.VerifyResetTokenResponse;
@@ -24,7 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(RecoveryController.class)
+@WebMvcTest(RecoveryControllerImpl.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler.class)
 class RecoveryControllerTest {
@@ -37,10 +36,10 @@ class RecoveryControllerTest {
     // ---------- recuperación de contraseña ----------
     @Test
     void recoveryReturns200() throws Exception {
-        mvc.perform(post("/api/v1/auth/recovery")
+        mvc.perform(post("/api/v1/auth/recuperacion")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"usuario@example.com"}
+                                {"correo":"usuario@example.com"}
                                 """))
                 .andExpect(status().isOk());
         verify(service).requestPasswordReset(new RecoveryRequest("usuario@example.com"));
@@ -48,10 +47,10 @@ class RecoveryControllerTest {
 
     @Test
     void recoveryRejectsInvalidEmail() throws Exception {
-        mvc.perform(post("/api/v1/auth/recovery")
+        mvc.perform(post("/api/v1/auth/recuperacion")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"no-es-un-correo"}
+                                {"correo":"no-es-un-correo"}
                                 """))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(service);
@@ -62,13 +61,13 @@ class RecoveryControllerTest {
         when(service.verifyResetCode(any(VerifyCodeRequest.class)))
                 .thenReturn(new VerifyResetTokenResponse("token-temporal"));
 
-        mvc.perform(post("/api/v1/auth/recovery/verify")
+        mvc.perform(post("/api/v1/auth/recuperacion/verificar")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"usuario@example.com","code":"ABC123"}
+                                {"correo":"usuario@example.com","codigo":"ABC123"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resetToken").value("token-temporal"));
+                .andExpect(jsonPath("$.tokenRestablecimiento").value("token-temporal"));
     }
 
     @Test
@@ -76,44 +75,59 @@ class RecoveryControllerTest {
         when(service.verifyResetCode(any(VerifyCodeRequest.class)))
                 .thenThrow(new InvalidRecoveryCode("El código es inválido o ha expirado"));
 
-        mvc.perform(post("/api/v1/auth/recovery/verify")
+        mvc.perform(post("/api/v1/auth/recuperacion/verificar")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"usuario@example.com","code":"ABC123"}
+                                {"correo":"usuario@example.com","codigo":"ABC123"}
                                 """))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void resendRecoveryReturns200() throws Exception {
-        mvc.perform(post("/api/v1/auth/recovery/resend")
+        mvc.perform(post("/api/v1/auth/recuperacion/reenviar")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"usuario@example.com"}
+                                {"correo":"usuario@example.com"}
                                 """))
                 .andExpect(status().isOk());
-        verify(service).resendCode(new ResendRecoveryCodeRequest("usuario@example.com"));
+        verify(service).resendCode(new RecoveryRequest("usuario@example.com"));
     }
 
     @Test
     void resetPasswordReturns200() throws Exception {
-        mvc.perform(post("/api/v1/auth/recovery/reset")
+        mvc.perform(post("/api/v1/auth/recuperacion/restablecer")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resetToken":"token-temporal","newPassword":"nuevaClave123"}
+                                {"tokenRestablecimiento":"token-temporal","nuevaContrasena":"NuevaClave123!"}
                                 """))
                 .andExpect(status().isOk());
-        verify(service).resetPassword(new ResetPasswordRequest("token-temporal", "nuevaClave123"));
+        verify(service).resetPassword(new ResetPasswordRequest("token-temporal", "NuevaClave123!"));
+    }
+
+    @Test
+    void resetPasswordRequiresAllFivePasswordRules() throws Exception {
+        // Largo, mayuscula, minuscula, numero y caracter especial; se valida antes de consumir token.
+        for (String password : new String[]{"Aa1!", "minuscula123!", "MAYUSCULA123!",
+                "SinNumeros!", "SinEspecial123"}) {
+            mvc.perform(post("/api/v1/auth/recuperacion/restablecer")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"tokenRestablecimiento\":\"token-temporal\",\"nuevaContrasena\":\""
+                                    + password + "\"}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.invalid_fields.nuevaContrasena").exists());
+        }
+        verifyNoInteractions(service);
     }
 
     @Test
     void resetPasswordRejectsExpiredToken() throws Exception {
         doThrow(new InvalidResetToken()).when(service).resetPassword(any(ResetPasswordRequest.class));
 
-        mvc.perform(post("/api/v1/auth/recovery/reset")
+        mvc.perform(post("/api/v1/auth/recuperacion/restablecer")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resetToken":"token-expirado","newPassword":"nuevaClave123"}
+                                {"tokenRestablecimiento":"token-expirado","nuevaContrasena":"NuevaClave123!"}
                                 """))
                 .andExpect(status().isBadRequest());
     }
