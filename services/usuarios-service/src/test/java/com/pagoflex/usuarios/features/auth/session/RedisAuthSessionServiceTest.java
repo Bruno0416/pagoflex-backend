@@ -71,7 +71,7 @@ class RedisAuthSessionServiceTest {
         var response = service.issue(user);
         assertThat(response.tokenAcceso()).isEqualTo("signed-access");
         assertThat(response.tokenRenovacion()).isNotBlank();
-        assertThat(response.expiraEnSegundos()).isEqualTo(900);
+        assertThat(response.rol()).isEqualTo(Role.USUARIO_FINAL);
         verify(operations, atLeastOnce()).opsForValue();
         verify(values, times(3)).set(anyString(), anyString(), any(Duration.class));
         verify(sets).add(eq("auth:user:" + uid), anyString());
@@ -185,6 +185,32 @@ class RedisAuthSessionServiceTest {
         assertThat(tokens.tokenAcceso()).isEqualTo("nuevo-access");
         verify(redis).delete("auth:user:" + uid);
         verify(sets).add(eq("auth:user:" + uid), anyString());
+    }
+
+
+    @Test
+    void rejectsInternalRoleWithoutCompany() {
+        Users agente = Users.builder().id(uid)
+                .email("agente@example.com").role(Role.AGENTE).build();
+
+        assertThatThrownBy(() -> service.issue(agente))
+                .isInstanceOf(InvalidSession.class);
+        verify(jwt, never()).generateToken(any(), any(), any());
+    }
+
+    @Test
+    void issuesValidInternalRoleInAuthResponse() {
+        Users agente = Users.builder().id(uid)
+                .email("agente@example.com").role(Role.AGENTE)
+                .persona(com.pagoflex.usuarios.features.profile.entity.Persona
+                        .builder().empresaId(UUID.randomUUID()).build())
+                .build();
+        when(jwt.generateToken(eq(agente), any(UUID.class), any(UUID.class)))
+                .thenReturn("signed-access");
+
+        var response = service.issue(agente);
+        assertThat(response.rol()).isEqualTo(Role.AGENTE);
+        assertThat(response.tokenAcceso()).isEqualTo("signed-access");
     }
 
 }

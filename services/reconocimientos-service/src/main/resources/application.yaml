@@ -38,6 +38,10 @@ pagoflex:
     jwt:
       secret: ${JWT_SECRET}
     public-paths:
+      - /swagger-ui.html
+      - /swagger-ui/**
+      - /v3/api-docs
+      - /v3/api-docs/**
       - /actuator/health
   reconocimientos:
     zona-horaria: ${RECONOCIMIENTOS_ZONA_HORARIA:America/Santiago}

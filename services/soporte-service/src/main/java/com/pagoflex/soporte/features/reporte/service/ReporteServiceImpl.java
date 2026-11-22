@@ -10,7 +10,7 @@ import com.pagoflex.soporte.core.exceptions.CompromisoNoEncontrado;
 import com.pagoflex.soporte.features.reporte.dto.request.ReportarRequest;
 import com.pagoflex.soporte.features.reporte.dto.request.ResolverRequest;
 import com.pagoflex.soporte.features.reporte.dto.response.PaginaResponse;
-import com.pagoflex.soporte.features.reporte.dto.response.ParticipantesResponse;
+import com.pagoflex.contracts.soporte.ParticipantesReporteInterno;
 import com.pagoflex.soporte.features.reporte.dto.response.ReporteResponse;
 import com.pagoflex.soporte.features.reporte.entity.EstadoReporte;
 import com.pagoflex.soporte.features.reporte.entity.MotivoReporte;
@@ -199,9 +199,9 @@ public class ReporteServiceImpl implements ReporteService {
     // ---------- interno ----------
     @Override
     @Transactional(readOnly = true)
-    public ParticipantesResponse participantes(String numero) {
+    public ParticipantesReporteInterno participantes(String numero) {
         Reporte r = buscar(numero);
-        return new ParticipantesResponse(r.getNumero(), r.getFolio(), r.getEstado(),
+        return new ParticipantesReporteInterno(r.getNumero(), r.getFolio(), r.getEstado().name(),
                 r.getEmpresaId(), r.getAgenteId(), r.getUsuarioId());
     }
 

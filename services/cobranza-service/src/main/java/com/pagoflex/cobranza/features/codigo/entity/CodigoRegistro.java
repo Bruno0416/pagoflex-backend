@@ -1,7 +1,7 @@
 package com.pagoflex.cobranza.features.codigo.entity;
 
-import com.pagoflex.contracts.organization.AuthorizedRole;
-import com.pagoflex.contracts.organization.OrganizationType;
+import com.pagoflex.contracts.organizacion.RolAutorizado;
+import com.pagoflex.contracts.organizacion.TipoOrganizacion;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,11 +39,11 @@ public class CodigoRegistro {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", nullable = false, updatable = false, columnDefinition = "varchar(10)")
-    private OrganizationType tipo;
+    private TipoOrganizacion tipo;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "rol", nullable = false, updatable = false, columnDefinition = "varchar(10)")
-    private AuthorizedRole rol;
+    private RolAutorizado rol;
 
     @Column(name = "activo", nullable = false)
     private boolean activo;

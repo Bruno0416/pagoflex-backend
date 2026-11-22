@@ -3,7 +3,7 @@ package com.pagoflex.cobranza.features.codigo.service;
 import java.security.SecureRandom;
 
 /// Arma códigos AA00AA-XXXXXXXXXXXXXXXXXXXXXXXXXX: prefijo público + 128 bits aleatorios en Base32 (26 caracteres).
-/// El alfabeto y la longitud son los mismos que valida ValidateOrganizationCodeRequest.
+/// El alfabeto y la longitud son los mismos que valida SolicitudValidacionCodigoEmpresa.
 public final class GeneradorCodigo {
     private static final String BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     private static final String LETRAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";

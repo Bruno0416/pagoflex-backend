@@ -1,44 +1,53 @@
 package com.pagoflex.usuarios.features.internal.controller;
 
-import com.pagoflex.usuarios.features.internal.dto.request.CreatePersonRequest;
-import com.pagoflex.usuarios.features.internal.dto.response.PersonResponse;
-import com.pagoflex.usuarios.features.internal.service.InternalPersonService;
+import com.pagoflex.contracts.usuarios.SolicitudCrearPersonaInterna;
+import com.pagoflex.contracts.usuarios.RespuestaPersonaInterna;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.UUID;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
-@RestController
-@RequestMapping("/api/v1/usuarios/internal/personas")
-@RequiredArgsConstructor
-public class InternalPersonController {
-    private final InternalPersonService service;
+@Tag(name = "Internal Person")
+public interface InternalPersonController {
 
+    @Operation(summary = "Registrar persona")
+    @ApiResponse(responseCode = "201", description = "Operación exitosa")
+    @ApiResponse(responseCode = "400", description = "Solicitud inválida")
+    @SecurityRequirement(name = "internalApiKey")
     @PostMapping
-    public ResponseEntity<PersonResponse> create(@Valid @RequestBody CreatePersonRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
-    }
+    ResponseEntity<RespuestaPersonaInterna> create(@Valid @RequestBody SolicitudCrearPersonaInterna request);
 
+    @Operation(summary = "Consultar persona por RUT")
+    @ApiResponse(responseCode = "200", description = "Operación exitosa")
+    @ApiResponse(responseCode = "400", description = "Solicitud inválida")
+    @SecurityRequirement(name = "internalApiKey")
     @GetMapping("/por-rut/{rut}")
-    public ResponseEntity<PersonResponse> byRut(@PathVariable String rut) {
-        return ResponseEntity.ok(service.byRut(rut));
-    }
+    ResponseEntity<RespuestaPersonaInterna> byRut(@PathVariable String rut);
 
+    @Operation(summary = "Consultar persona por usuario")
+    @ApiResponse(responseCode = "200", description = "Operación exitosa")
+    @ApiResponse(responseCode = "400", description = "Solicitud inválida")
+    @SecurityRequirement(name = "internalApiKey")
     @GetMapping("/por-usuario/{idUsuario}")
-    public ResponseEntity<PersonResponse> byUserId(@PathVariable UUID idUsuario) {
-        return ResponseEntity.ok(service.byUserId(idUsuario));
-    }
+    ResponseEntity<RespuestaPersonaInterna> byUserId(@PathVariable UUID idUsuario);
 
+    @Operation(summary = "Consultar persona por correo")
+    @ApiResponse(responseCode = "200", description = "Operación exitosa")
+    @ApiResponse(responseCode = "400", description = "Solicitud inválida")
+    @SecurityRequirement(name = "internalApiKey")
     @GetMapping("/por-correo/{correo}")
-    public ResponseEntity<PersonResponse> byEmail(@PathVariable String correo) {
-        return ResponseEntity.ok(service.byEmail(correo));
-    }
+    ResponseEntity<RespuestaPersonaInterna> byEmail(@PathVariable String correo);
 
+    @Operation(summary = "Consultar persona por ID")
+    @ApiResponse(responseCode = "200", description = "Operación exitosa")
+    @ApiResponse(responseCode = "400", description = "Solicitud inválida")
+    @SecurityRequirement(name = "internalApiKey")
     @GetMapping("/{id}")
-    public ResponseEntity<PersonResponse> byId(@PathVariable UUID id) {
-        return ResponseEntity.ok(service.byId(id));
-    }
+    ResponseEntity<RespuestaPersonaInterna> byId(@PathVariable UUID id);
+
 }

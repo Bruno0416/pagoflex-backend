@@ -1,7 +1,7 @@
 package com.pagoflex.cobranza.features.codigo;
 
 import com.pagoflex.cobranza.features.codigo.service.GeneradorCodigo;
-import com.pagoflex.contracts.organization.ValidateOrganizationCodeRequest;
+import com.pagoflex.contracts.organizacion.SolicitudValidacionCodigoEmpresa;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -16,7 +16,7 @@ class GeneradorCodigoTest {
         for (int i = 0; i < 200; i++) {
             String codigo = GeneradorCodigo.armar(GeneradorCodigo.prefijoAleatorio(), GeneradorCodigo.secretoAleatorio());
             assertThat(codigo).hasSize(33);
-            assertThat(ValidateOrganizationCodeRequest.esValido(codigo)).isTrue();
+            assertThat(SolicitudValidacionCodigoEmpresa.esValido(codigo)).isTrue();
             assertThat(GeneradorCodigo.prefijoDe(codigo)).matches("[A-Z]{2}[0-9]{2}[A-Z]{2}");
         }
     }

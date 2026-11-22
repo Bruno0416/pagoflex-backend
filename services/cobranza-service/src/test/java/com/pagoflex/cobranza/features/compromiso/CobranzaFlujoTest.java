@@ -12,8 +12,8 @@ import com.pagoflex.cobranza.features.empresa.data.CargaEmpresas;
 import com.pagoflex.cobranza.features.empresa.repository.EmpresaClienteRepository;
 import com.pagoflex.cobranza.support.RedisPrueba;
 import com.pagoflex.cobranza.support.RelojFijo;
-import com.pagoflex.contracts.organization.IdentificadoresEmpresa;
-import com.pagoflex.contracts.usuarios.CrearPersonaInterna;
+import com.pagoflex.contracts.organizacion.IdentificadoresEmpresa;
+import com.pagoflex.contracts.usuarios.SolicitudCrearPersonaInterna;
 import com.pagoflex.contracts.usuarios.PersonaInterna;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -138,9 +138,9 @@ class CobranzaFlujoTest {
     @Test
     void personaNuevaPideSusDatosYSeCreaEnUsuarios() throws Exception {
         when(usuarios.porRut("20111222-2")).thenReturn(Optional.empty());
-        when(usuarios.crear(any(CrearPersonaInterna.class))).thenAnswer(i -> {
-            CrearPersonaInterna r = i.getArgument(0);
-            return new PersonaInterna(UUID.randomUUID(), r.rut(), r.nombres(), r.apellidos(), r.correo(), r.telefono(), null);
+        when(usuarios.crear(any(SolicitudCrearPersonaInterna.class))).thenAnswer(i -> {
+            SolicitudCrearPersonaInterna r = i.getArgument(0);
+            return new PersonaInterna(UUID.randomUUID(), r.rut(), r.nombres(), r.apellidos(), r.correoContacto(), r.telefono(), null);
         });
 
         mvc.perform(post("/api/v1/empresas/me/compromisos").header("Authorization", altos())
@@ -155,7 +155,7 @@ class CobranzaFlujoTest {
                         .contentType(MediaType.APPLICATION_JSON).content(conDatos))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.persona.rut").value("20111222-2"));
-        verify(usuarios).crear(any(CrearPersonaInterna.class));
+        verify(usuarios).crear(any(SolicitudCrearPersonaInterna.class));
     }
 
     @Test
@@ -372,10 +372,10 @@ class CobranzaFlujoTest {
 
         // el cuerpo se lee con el mismo contrato que usa reconocimientos-service
         var hechos = tools.jackson.databind.json.JsonMapper.builder().build()
-                .readValue(json, com.pagoflex.contracts.cobranza.PaymentFactsResponse.class);
+                .readValue(json, com.pagoflex.contracts.cobranza.RespuestaHechosPago.class);
         assertThat(hechos.compromisos().get(0).pago().numeroComprobante()).isEqualTo("CPR-000001");
         assertThat(hechos.compromisos().get(0).estado())
-                .isEqualTo(com.pagoflex.contracts.cobranza.CommitmentStatus.PAGADO);
+                .isEqualTo(com.pagoflex.contracts.cobranza.EstadoCompromisoEvaluacion.PAGADO);
 
         // 3. una cuenta sin persona es un recurso inexistente
         mvc.perform(get("/api/v1/internal/usuarios/" + UUID.randomUUID() + "/hechos-pago")

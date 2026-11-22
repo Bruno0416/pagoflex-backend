@@ -1,6 +1,6 @@
 package com.pagoflex.usuarios;
 
-import com.pagoflex.contracts.email.CodeType;
+import com.pagoflex.contracts.correo.TipoCodigo;
 import com.pagoflex.security.RedisAccessTokenValidator;
 import com.pagoflex.usuarios.core.cache.RedisExpiringCache;
 import com.pagoflex.usuarios.core.cache.RedisTransactionExecutor;
@@ -202,7 +202,7 @@ class RedisIntegrationIT {
 
     @Test
     void recoveryCodeIsStoredWithItsConfiguredExpiration() {
-        codes.generateCode(user.getEmail(), CodeType.RECOVERY);
+        codes.generateCode(user.getEmail(), TipoCodigo.RECOVERY);
 
         Long ttl = redis.getExpire(redis.keys("pagoflex:auth:code:*").iterator().next());
 
@@ -212,41 +212,41 @@ class RedisIntegrationIT {
     // ---------- recuperacion de contrasena ----------
     @Test
     void recoveryCodeFlowIssuesAOneTimeResetToken() {
-        String code = codes.generateCode(user.getEmail(), CodeType.RECOVERY);
+        String code = codes.generateCode(user.getEmail(), TipoCodigo.RECOVERY);
         // en redis solo existe el hash, no el codigo
         assertThat(redis.keys("pagoflex:auth:code:*")).hasSize(1);
         assertThat(redis.opsForValue().get(redis.keys("pagoflex:auth:code:*").iterator().next()))
                 .isNotEqualTo(code);
 
-        String reset = codes.verifyCodeAndIssueResetToken(user.getEmail(), CodeType.RECOVERY, code);
+        String reset = codes.verifyCodeAndIssueResetToken(user.getEmail(), TipoCodigo.RECOVERY, code);
 
         assertThat(redis.keys("pagoflex:auth:code:*")).isEmpty();
         assertThat(codes.consumeResetToken(reset)).isEqualTo(user.getEmail());
         assertThatThrownBy(() -> codes.consumeResetToken(reset)).isInstanceOf(InvalidResetToken.class);
-        assertThatThrownBy(() -> codes.verifyCodeAndIssueResetToken(user.getEmail(), CodeType.RECOVERY, code))
+        assertThatThrownBy(() -> codes.verifyCodeAndIssueResetToken(user.getEmail(), TipoCodigo.RECOVERY, code))
                 .isInstanceOf(InvalidRecoveryCode.class);
     }
 
     @Test
     void fiveWrongAttemptsLockTheCodeEvenIfTheCorrectOneArrivesLater() {
-        String code = codes.generateCode(user.getEmail(), CodeType.RECOVERY);
+        String code = codes.generateCode(user.getEmail(), TipoCodigo.RECOVERY);
         String wrong = code.startsWith("A") ? "BBBBBB" : "AAAAAA";
 
         for (int i = 0; i < 5; i++) {
-            assertThatThrownBy(() -> codes.verifyCodeAndIssueResetToken(user.getEmail(), CodeType.RECOVERY, wrong))
+            assertThatThrownBy(() -> codes.verifyCodeAndIssueResetToken(user.getEmail(), TipoCodigo.RECOVERY, wrong))
                     .isInstanceOf(InvalidRecoveryCode.class);
         }
 
-        assertThatThrownBy(() -> codes.verifyCodeAndIssueResetToken(user.getEmail(), CodeType.RECOVERY, code))
+        assertThatThrownBy(() -> codes.verifyCodeAndIssueResetToken(user.getEmail(), TipoCodigo.RECOVERY, code))
                 .isInstanceOf(InvalidRecoveryCode.class);
     }
 
     @Test
     void generatingANewCodeInvalidatesThePreviousResetToken() {
-        String first = codes.generateCode(user.getEmail(), CodeType.RECOVERY);
-        String reset = codes.verifyCodeAndIssueResetToken(user.getEmail(), CodeType.RECOVERY, first);
+        String first = codes.generateCode(user.getEmail(), TipoCodigo.RECOVERY);
+        String reset = codes.verifyCodeAndIssueResetToken(user.getEmail(), TipoCodigo.RECOVERY, first);
 
-        codes.generateCode(user.getEmail(), CodeType.RECOVERY);
+        codes.generateCode(user.getEmail(), TipoCodigo.RECOVERY);
 
         assertThatThrownBy(() -> codes.consumeResetToken(reset)).isInstanceOf(InvalidResetToken.class);
     }

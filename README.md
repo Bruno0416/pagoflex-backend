@@ -43,24 +43,25 @@ Backend de **PagoFlex** desarrollado con Java 21, Spring Boot 4.1.2 y Maven.
 ```text
 pagoflex-backend/
 ├── libs/
-│   ├── core/                # excepciones y utilidades compartidas
-│   ├── contracts/           # contratos entre microservicios
-│   ├── security/            # autenticacion JWT y seguridad interna
-│   └── web/                 # manejo comun de errores HTTP
+│   ├── core/                     # excepciones y utilidades compartidas
+│   ├── contracts/                # contratos entre microservicios
+│   ├── security/                 # autenticacion JWT y seguridad interna
+│   └── web/                      # manejo comun de errores HTTP
 ├── services/
-│   ├── api-gateway/         # entrada HTTP y validacion de JWT
-│   ├── usuarios-service/    # autenticacion, sesiones y perfiles
-│   ├── email-service/       # envio interno de correos
-│   ├── reconocimientos-service/ # logros por historial de pagos
-│   ├── cobranza-service/    # empresas, compromisos, pagos y comprobantes
-│   ├── soporte-service/     # reportes de cobros y bandeja del agente
-│   └── eureka-server/       # descubrimiento de servicios
+│   ├── api-gateway/              # entrada HTTP y validacion de JWT
+│   ├── usuarios-service/         # autenticacion, sesiones y perfiles
+│   ├── email-service/            # envio interno de correos
+│   ├── reconocimientos-service/  # logros por historial de pagos
+│   ├── cobranza-service/         # empresas, compromisos, pagos y comprobantes
+│   ├── soporte-service/          # reportes de cobros y bandeja del agente
+│   ├── mensajeria-service/       # chat del reporte entre agente y ejecutivo
+│   └── eureka-server/            # descubrimiento de servicios
 ├── infrastructure/
-│   ├── compose.yml         # contenedores y red interna
-│   └── .env.example        # ejemplo de variables de entorno
+│   ├── compose.yml               # contenedores y red interna
+│   └── .env.example              # ejemplo de variables de entorno
 ├── tools/
-│   └── init_db.py          # preparacion de bases de datos y usuarios MySQL
-└── pom.xml                 # proyecto Maven raiz
+│   └── init_db.py                # preparacion de bases de datos y usuarios MySQL
+└── pom.xml                       # proyecto Maven raiz
 ```
 
 ## Estado de los servicios
@@ -74,7 +75,7 @@ pagoflex-backend/
 | `reconocimientos-service` | Implementado | Reconocimientos por primer pago a tiempo y tres meses al día; consulta hechos de pago de Cobranza y es evaluado tras cada pago. |
 | `cobranza-service` | Implementado | Ejecutivo (`/api/v1/empresas/me`): registro, anulación, lista y resumen mensual. Usuario final (`/api/v1/compromisos/me`): detalle, cotización y pago simulado en orden de cuotas con `Idempotency-Key`, comprobante, historial, anulaciones y cumplimiento. Valida los códigos privados de registro de empresas. Personas vía rutas internas de usuarios. |
 | `soporte-service` | Implementado | Reportes del usuario (`/api/v1/reportes`), bandeja paginada del agente con estados `ABIERTO → ASIGNADO → EN_ATENCION → RESUELTO` e historial, y reportes de su empresa para el ejecutivo (`/api/v1/empresas/me/reportes`). |
-| `mensajeria-service` | **No implementado** | Mensajes asociados a la atención de casos. |
+| `mensajeria-service` | Implementado | Conversación por reporte entre agente asignado y ejecutivo de la empresa: historial paginado, envío idempotente, lecturas y eventos SSE. |
 
 Cobranza y Soporte están integrados con los contratos compartidos de `libs/contracts`. El RUT se almacena sin puntos y con guion, por ejemplo `12345678-5`.
 

@@ -1,7 +1,7 @@
 package com.pagoflex.email.service;
 
-import com.pagoflex.contracts.email.EmailType;
-import com.pagoflex.contracts.email.SendEmailRequest;
+import com.pagoflex.contracts.correo.TipoCorreo;
+import com.pagoflex.contracts.correo.SolicitudEnvioCorreo;
 import com.pagoflex.core.error.PagoFlexException;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -36,8 +36,8 @@ class EmailServiceImplTest {
     private JavaMailSender mailSender;
     private EmailServiceImpl service;
 
-    private static final SendEmailRequest RECOVERY_REQUEST = new SendEmailRequest(
-            "usuario@example.com", EmailType.RECOVERY, Map.of("code", "ABC123"));
+    private static final SolicitudEnvioCorreo RECOVERY_REQUEST = new SolicitudEnvioCorreo(
+            "usuario@example.com", TipoCorreo.RECOVERY, Map.of("code", "ABC123"));
 
     @BeforeEach
     void setup() {
@@ -73,7 +73,7 @@ class EmailServiceImplTest {
 
     @Test
     void rejectsMissingRequiredVariableWithoutSending() {
-        SendEmailRequest request = new SendEmailRequest("usuario@example.com", EmailType.RECOVERY, Map.of());
+        SolicitudEnvioCorreo request = new SolicitudEnvioCorreo("usuario@example.com", TipoCorreo.RECOVERY, Map.of());
 
         assertThatThrownBy(() -> service.send(request))
                 .isInstanceOf(PagoFlexException.class)

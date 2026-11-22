@@ -2,7 +2,7 @@ package com.pagoflex.cobranza.features.empresa.data;
 
 import com.pagoflex.cobranza.features.empresa.entity.EmpresaCliente;
 import com.pagoflex.cobranza.features.empresa.repository.EmpresaClienteRepository;
-import com.pagoflex.contracts.organization.IdentificadoresEmpresa;
+import com.pagoflex.contracts.organizacion.IdentificadoresEmpresa;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;

@@ -1,8 +1,8 @@
 package com.pagoflex.reconocimientos.features.recognition.service;
 
-import com.pagoflex.contracts.cobranza.PaymentFactsResponse;
-import com.pagoflex.contracts.vinculacion.EvaluateRecognitionsRequest;
-import com.pagoflex.contracts.vinculacion.EvaluateRecognitionsResponse;
+import com.pagoflex.contracts.cobranza.RespuestaHechosPago;
+import com.pagoflex.contracts.vinculacion.SolicitudEvaluacionReconocimientos;
+import com.pagoflex.contracts.vinculacion.RespuestaEvaluacionReconocimientos;
 import com.pagoflex.security.CurrentUser;
 import com.pagoflex.reconocimientos.core.exceptions.CobranzaInvalidData;
 import com.pagoflex.reconocimientos.core.exceptions.CobranzaUnavailable;
@@ -35,7 +35,7 @@ public class RecognitionService {
         UUID userId = CurrentUser.id();
         // 1. al consultar, evaluar los mismos logros que la app local evaluaba antes de mostrar
         try {
-            evaluate(new EvaluateRecognitionsRequest(userId, null));
+            evaluate(new SolicitudEvaluacionReconocimientos(userId, null));
         } catch (CobranzaUnavailable | CobranzaInvalidData ex) {
             // 2. una caida del proveedor no debe ocultar logros ya obtenidos.
             log.warn("No se pudo actualizar los reconocimientos de {}: {}", userId,
@@ -50,9 +50,9 @@ public class RecognitionService {
     }
 
     // ---------- evaluacion desde cobranza ----------
-    public EvaluateRecognitionsResponse evaluate(EvaluateRecognitionsRequest request) {
+    public RespuestaEvaluacionReconocimientos evaluate(SolicitudEvaluacionReconocimientos request) {
         // 1. consultar y validar hechos de pago directamente en cobranza
-        PaymentFactsResponse facts = cobranza.fetchPaymentFacts(request.idUsuario());
+        RespuestaHechosPago facts = cobranza.fetchPaymentFacts(request.idUsuario());
         PaymentFactsValidator.validate(facts, request.idUsuario());
 
         // 2. evaluar solamente las dos reglas disponibles en la app
@@ -63,6 +63,6 @@ public class RecognitionService {
                 .filter(candidate -> grants.grantIfAbsent(request.idUsuario(), candidate))
                 .map(candidate -> candidate.code().name())
                 .toList();
-        return new EvaluateRecognitionsResponse(request.idUsuario(), granted, OffsetDateTime.now(clock));
+        return new RespuestaEvaluacionReconocimientos(request.idUsuario(), granted, OffsetDateTime.now(clock));
     }
 }

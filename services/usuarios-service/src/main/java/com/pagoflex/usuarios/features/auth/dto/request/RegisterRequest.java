@@ -1,6 +1,6 @@
 package com.pagoflex.usuarios.features.auth.dto.request;
 
-import com.pagoflex.contracts.organization.ValidateOrganizationCodeRequest;
+import com.pagoflex.contracts.organizacion.SolicitudValidacionCodigoEmpresa;
 import com.pagoflex.usuarios.core.validation.StrongPassword;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -29,7 +29,7 @@ public record RegisterRequest(
         @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$", message = "El apellido no puede contener números ni caracteres especiales")
         String apellidos,
 
-        @Pattern(regexp = ValidateOrganizationCodeRequest.FORMATO,
+        @Pattern(regexp = SolicitudValidacionCodigoEmpresa.FORMATO,
                 message = "El codigo de empresa no tiene un formato valido")
         String codigoEmpresa
 ) {

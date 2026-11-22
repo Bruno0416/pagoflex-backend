@@ -32,6 +32,10 @@ spring:
               uri: lb://reconocimientos-service
               predicates:
                 - Path=/api/v1/reconocimientos/**
+            - id: mensajeria-service
+              uri: lb://mensajeria-service
+              predicates:
+                - Path=/api/v1/conversaciones/**
             # soporte va antes que cobranza: comparte el prefijo /api/v1/empresas/me
             - id: soporte-service
               uri: lb://soporte-service

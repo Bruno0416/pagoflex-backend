@@ -1,6 +1,6 @@
 package com.pagoflex.usuarios.features.auth.data;
 
-import com.pagoflex.contracts.organization.IdentificadoresEmpresa;
+import com.pagoflex.contracts.organizacion.IdentificadoresEmpresa;
 import com.pagoflex.usuarios.core.security.Role;
 import com.pagoflex.usuarios.features.auth.entity.Users;
 import com.pagoflex.usuarios.features.auth.repository.UserRepository;

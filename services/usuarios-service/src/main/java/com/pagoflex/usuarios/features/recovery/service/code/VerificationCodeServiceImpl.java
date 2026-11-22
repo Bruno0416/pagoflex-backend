@@ -1,6 +1,6 @@
 package com.pagoflex.usuarios.features.recovery.service.code;
 
-import com.pagoflex.contracts.email.CodeType;
+import com.pagoflex.contracts.correo.TipoCodigo;
 import com.pagoflex.usuarios.core.cache.ExpiringCache;
 import com.pagoflex.usuarios.core.cache.RedisTransactionExecutor;
 import com.pagoflex.usuarios.features.recovery.exceptions.InvalidRecoveryCode;
@@ -38,7 +38,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 
     // ---------- generación de códigos ----------
     @Override
-    public String generateCode(String email, CodeType type) {
+    public String generateCode(String email, TipoCodigo type) {
         // 1. generar código y preparar claves con su expiración
         Duration expiration = Duration.ofSeconds(seconds(codeExpirationMinutes));
         String code = CodeGeneratorUtil.generateCode();
@@ -65,7 +65,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 
     // ---------- verificación de códigos ----------
     @Override
-    public String verifyCodeAndIssueResetToken(String email, CodeType type, String submittedCode) {
+    public String verifyCodeAndIssueResetToken(String email, TipoCodigo type, String submittedCode) {
         // 1. normalizar el código y preparar las claves de verificación
         Duration expiration = Duration.ofSeconds(seconds(resetExpirationMinutes));
         String normalized = submittedCode == null ? "" : submittedCode.trim().toUpperCase(Locale.ROOT);
@@ -137,7 +137,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         }
         // 4. validar y consumir el token y su referencia activa en una transacción
         String consumedEmail = transactions.execute(operations -> {
-            String activeKey = ACTIVE_PREFIX + reference(email, CodeType.RECOVERY);
+            String activeKey = ACTIVE_PREFIX + reference(email, TipoCodigo.RECOVERY);
             operations.watch(List.of(tokenKey, activeKey));
             try {
                 if (!email.equals(operations.opsForValue().get(tokenKey))
@@ -170,7 +170,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         }
     }
 
-    private static String reference(String email, CodeType type) {
+    private static String reference(String email, TipoCodigo type) {
         return digest(type.name() + ":" + email);
     }
 

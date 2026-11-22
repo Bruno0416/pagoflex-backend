@@ -11,7 +11,7 @@ import com.pagoflex.cobranza.features.compromiso.service.CobranzaEjecutivoServic
 import com.pagoflex.cobranza.features.empresa.data.CargaEmpresas;
 import com.pagoflex.cobranza.features.empresa.repository.EmpresaClienteRepository;
 import com.pagoflex.cobranza.support.RelojFijo;
-import com.pagoflex.contracts.usuarios.CrearPersonaInterna;
+import com.pagoflex.contracts.usuarios.SolicitudCrearPersonaInterna;
 import com.pagoflex.contracts.usuarios.PersonaInterna;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,9 +66,9 @@ class CargaDemoTest {
         when(usuarios.porCorreo(anyString())).thenAnswer(i -> Optional.of(new PersonaInterna(UUID.randomUUID(),
                 "1-9", "N", "A", i.getArgument(0), null, cuentas.computeIfAbsent(i.getArgument(0), k -> UUID.randomUUID()))));
         when(usuarios.porRut(anyString())).thenReturn(Optional.empty());
-        when(usuarios.crear(any(CrearPersonaInterna.class))).thenAnswer(i -> {
-            CrearPersonaInterna r = i.getArgument(0);
-            return new PersonaInterna(UUID.randomUUID(), r.rut(), r.nombres(), r.apellidos(), r.correo(), r.telefono(), null);
+        when(usuarios.crear(any(SolicitudCrearPersonaInterna.class))).thenAnswer(i -> {
+            SolicitudCrearPersonaInterna r = i.getArgument(0);
+            return new PersonaInterna(UUID.randomUUID(), r.rut(), r.nombres(), r.apellidos(), r.correoContacto(), r.telefono(), null);
         });
     }
 

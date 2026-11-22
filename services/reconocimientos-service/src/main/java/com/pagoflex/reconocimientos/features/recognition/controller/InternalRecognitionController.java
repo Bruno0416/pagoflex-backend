@@ -1,27 +1,26 @@
 package com.pagoflex.reconocimientos.features.recognition.controller;
 
-import com.pagoflex.contracts.vinculacion.EvaluateRecognitionsRequest;
-import com.pagoflex.contracts.vinculacion.EvaluateRecognitionsResponse;
-import com.pagoflex.reconocimientos.features.recognition.service.RecognitionService;
+import com.pagoflex.contracts.vinculacion.SolicitudEvaluacionReconocimientos;
+import com.pagoflex.contracts.vinculacion.RespuestaEvaluacionReconocimientos;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
+@Tag(name = "Internal Recognition")
+public interface InternalRecognitionController {
 
-@RestController
-@RequestMapping("/api/v1/internal/reconocimientos")
-@RequiredArgsConstructor
-public class InternalRecognitionController {
-    private final RecognitionService service;
-
+    @Operation(summary = "Evaluar reconocimientos")
+    @ApiResponse(responseCode = "200", description = "Operación exitosa")
+    @ApiResponse(responseCode = "400", description = "Solicitud inválida")
+    @SecurityRequirement(name = "internalApiKey")
     @PostMapping("/evaluar")
-    public ResponseEntity<EvaluateRecognitionsResponse> evaluate(
-            @Valid @RequestBody EvaluateRecognitionsRequest request
-    ) {
-        return ResponseEntity.ok(service.evaluate(request));
-    }
+    ResponseEntity<RespuestaEvaluacionReconocimientos> evaluate(@Valid @RequestBody SolicitudEvaluacionReconocimientos request);
+
 }

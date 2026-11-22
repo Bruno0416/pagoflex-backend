@@ -1,6 +1,6 @@
 package com.pagoflex.reconocimientos.core.client;
 
-import com.pagoflex.contracts.cobranza.CommitmentStatus;
+import com.pagoflex.contracts.cobranza.EstadoCompromisoEvaluacion;
 import com.pagoflex.reconocimientos.core.exceptions.CobranzaInvalidData;
 import com.pagoflex.reconocimientos.core.exceptions.CobranzaUnavailable;
 import com.pagoflex.reconocimientos.support.CobranzaStubServer;
@@ -41,7 +41,7 @@ class CobranzaClientTest {
         assertThat(server.receivedPath).isEqualTo("/api/v1/internal/usuarios/" + USER + "/hechos-pago");
         assertThat(facts.idUsuario()).isEqualTo(USER);
         assertThat(facts.compromisos()).hasSize(5);
-        assertThat(facts.compromisos().get(0).estado()).isEqualTo(CommitmentStatus.PAGADO);
+        assertThat(facts.compromisos().get(0).estado()).isEqualTo(EstadoCompromisoEvaluacion.PAGADO);
         assertThat(facts.compromisos().get(0).pago().numeroComprobante()).isEqualTo("CMP-2026-0101");
         assertThat(facts.compromisos().get(2).pago()).isNull();
     }

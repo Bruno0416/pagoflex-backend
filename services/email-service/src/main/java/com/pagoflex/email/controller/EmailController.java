@@ -1,6 +1,6 @@
 package com.pagoflex.email.controller;
 
-import com.pagoflex.contracts.email.SendEmailRequest;
+import com.pagoflex.contracts.correo.SolicitudEnvioCorreo;
 import com.pagoflex.email.service.EmailService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,7 @@ public class EmailController {
     private final EmailService emailService;
 
     @PostMapping("/enviar")
-    public ResponseEntity<Void> send(@Valid @RequestBody SendEmailRequest request) {
+    public ResponseEntity<Void> send(@Valid @RequestBody SolicitudEnvioCorreo request) {
         emailService.send(request);
         return ResponseEntity.ok().build();
     }

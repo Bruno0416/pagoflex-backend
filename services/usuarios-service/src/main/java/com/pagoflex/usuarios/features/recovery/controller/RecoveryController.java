@@ -4,46 +4,42 @@ import com.pagoflex.usuarios.features.recovery.dto.request.RecoveryRequest;
 import com.pagoflex.usuarios.features.recovery.dto.request.ResetPasswordRequest;
 import com.pagoflex.usuarios.features.recovery.dto.request.VerifyCodeRequest;
 import com.pagoflex.usuarios.features.recovery.dto.response.VerifyResetTokenResponse;
-import com.pagoflex.usuarios.features.recovery.service.RecoveryService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
-@RestController
-@RequestMapping("/api/v1/auth")
-@RequiredArgsConstructor
-public class RecoveryController {
-    private final RecoveryService service;
+@Tag(name = "Recovery")
+public interface RecoveryController {
 
-    // 1. solicitar recuperación de contraseña
+    @Operation(summary = "Solicitar recuperación")
+    @ApiResponse(responseCode = "200", description = "Operación exitosa")
+    @ApiResponse(responseCode = "400", description = "Solicitud inválida")
     @PostMapping("/recuperacion")
-    public ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody RecoveryRequest request) {
-        service.requestPasswordReset(request);
-        return ResponseEntity.ok().build();
-    }
+    ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody RecoveryRequest request);
 
-    // 2. reenviar código
+    @Operation(summary = "Reenviar código")
+    @ApiResponse(responseCode = "200", description = "Operación exitosa")
+    @ApiResponse(responseCode = "400", description = "Solicitud inválida")
     @PostMapping("/recuperacion/reenviar")
-    public ResponseEntity<Void> resendCode(@Valid @RequestBody RecoveryRequest request) {
-        service.resendCode(request);
-        return ResponseEntity.ok().build();
-    }
+    ResponseEntity<Void> resendCode(@Valid @RequestBody RecoveryRequest request);
 
-    // 3. verificar código (devuelve token de recuperación)
+    @Operation(summary = "Verificar código")
+    @ApiResponse(responseCode = "200", description = "Operación exitosa")
+    @ApiResponse(responseCode = "400", description = "Solicitud inválida")
     @PostMapping("/recuperacion/verificar")
-    public ResponseEntity<VerifyResetTokenResponse> verifyResetCode(
-            @Valid @RequestBody VerifyCodeRequest request) {
-        return ResponseEntity.ok(service.verifyResetCode(request));
-    }
+    ResponseEntity<VerifyResetTokenResponse> verifyResetCode(@Valid @RequestBody VerifyCodeRequest request);
 
-    // 4. cambio de contraseña
+    @Operation(summary = "Restablecer contraseña")
+    @ApiResponse(responseCode = "200", description = "Operación exitosa")
+    @ApiResponse(responseCode = "400", description = "Solicitud inválida")
     @PostMapping("/recuperacion/restablecer")
-    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        service.resetPassword(request);
-        return ResponseEntity.ok().build();
-    }
+    ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request);
+
 }

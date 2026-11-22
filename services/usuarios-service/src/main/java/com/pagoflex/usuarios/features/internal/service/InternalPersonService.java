@@ -1,7 +1,7 @@
 package com.pagoflex.usuarios.features.internal.service;
 
-import com.pagoflex.usuarios.features.internal.dto.request.CreatePersonRequest;
-import com.pagoflex.usuarios.features.internal.dto.response.PersonResponse;
+import com.pagoflex.contracts.usuarios.SolicitudCrearPersonaInterna;
+import com.pagoflex.contracts.usuarios.RespuestaPersonaInterna;
 import com.pagoflex.usuarios.features.internal.exceptions.PersonNotFound;
 import com.pagoflex.usuarios.features.auth.exceptions.InvalidRut;
 import com.pagoflex.usuarios.features.auth.exceptions.RutAlreadyInUse;
@@ -26,7 +26,7 @@ public class InternalPersonService {
 
     // ---------- alta de persona sin cuenta ----------
     @Transactional
-    public PersonResponse create(CreatePersonRequest request) {
+    public RespuestaPersonaInterna create(SolicitudCrearPersonaInterna request) {
         // 1. normalizar y verificar el rut
         String rut = normalize(request.rut());
         if (repository.existsByRut(rut)) throw new RutAlreadyInUse();
@@ -42,17 +42,17 @@ public class InternalPersonService {
 
     // ---------- busqueda interna ----------
     @Transactional(readOnly = true)
-    public PersonResponse byRut(String rut) {
+    public RespuestaPersonaInterna byRut(String rut) {
         return repository.findByRut(normalize(rut)).map(this::withAccount).orElseThrow(PersonNotFound::new);
     }
 
     @Transactional(readOnly = true)
-    public PersonResponse byId(UUID id) {
+    public RespuestaPersonaInterna byId(UUID id) {
         return repository.findById(id).map(this::withAccount).orElseThrow(PersonNotFound::new);
     }
 
     @Transactional(readOnly = true)
-    public PersonResponse byUserId(UUID userId) {
+    public RespuestaPersonaInterna byUserId(UUID userId) {
         // 1. la persona enlazada a la cuenta
         Users user = userRepository.findById(userId).orElseThrow(PersonNotFound::new);
         if (user.getPersona() == null) throw new PersonNotFound();
@@ -60,7 +60,7 @@ public class InternalPersonService {
     }
 
     @Transactional(readOnly = true)
-    public PersonResponse byEmail(String email) {
+    public RespuestaPersonaInterna byEmail(String email) {
         // 1. el correo de acceso identifica la cuenta
         Users user = userRepository.findByEmail(EmailUtils.normalize(email)).orElseThrow(PersonNotFound::new);
         if (user.getPersona() == null) throw new PersonNotFound();
@@ -73,12 +73,12 @@ public class InternalPersonService {
         catch (IllegalArgumentException ex) { throw new InvalidRut(); }
     }
 
-    private PersonResponse withAccount(Persona person) {
+    private RespuestaPersonaInterna withAccount(Persona person) {
         return toResponse(person, userRepository.findByPersona_Id(person.getId()).orElse(null));
     }
 
-    private static PersonResponse toResponse(Persona person, Users user) {
-        return new PersonResponse(person.getId(), person.getRut(), person.getNombres(),
+    private static RespuestaPersonaInterna toResponse(Persona person, Users user) {
+        return new RespuestaPersonaInterna(person.getId(), person.getRut(), person.getNombres(),
                 person.getApellidos(), person.getCorreoContacto(), person.getTelefono(),
                 user != null ? user.getId() : null, user != null ? user.getEmail() : null,
                 person.getEmpresaId());

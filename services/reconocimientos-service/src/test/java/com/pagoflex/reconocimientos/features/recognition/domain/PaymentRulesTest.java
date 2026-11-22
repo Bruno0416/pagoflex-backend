@@ -1,7 +1,7 @@
 package com.pagoflex.reconocimientos.features.recognition.domain;
 
-import com.pagoflex.contracts.cobranza.CommitmentFact;
-import com.pagoflex.contracts.cobranza.CommitmentStatus;
+import com.pagoflex.contracts.cobranza.HechoCompromiso;
+import com.pagoflex.contracts.cobranza.EstadoCompromisoEvaluacion;
 import com.pagoflex.reconocimientos.features.recognition.entity.RecognitionCode;
 import org.junit.jupiter.api.Test;
 
@@ -38,10 +38,10 @@ class PaymentRulesTest {
 
     @Test
     void annulledAndInReviewAreIgnored() {
-        var facts = List.of(withStatus("CP-1", "2026-07-05", CommitmentStatus.ANULADO),
-                withStatus("CP-2", "2026-07-05", CommitmentStatus.EN_REVISION),
-                withStatus("CP-3", "2026-07-05", CommitmentStatus.VENCIDO),
-                withStatus("CP-4", "2026-12-05", CommitmentStatus.PENDIENTE));
+        var facts = List.of(withStatus("CP-1", "2026-07-05", EstadoCompromisoEvaluacion.ANULADO),
+                withStatus("CP-2", "2026-07-05", EstadoCompromisoEvaluacion.EN_REVISION),
+                withStatus("CP-3", "2026-07-05", EstadoCompromisoEvaluacion.VENCIDO),
+                withStatus("CP-4", "2026-12-05", EstadoCompromisoEvaluacion.PENDIENTE));
         assertThat(PaymentRules.firstOnTimePayment(facts, SANTIAGO)).isEmpty();
     }
 
@@ -123,14 +123,14 @@ class PaymentRulesTest {
     @Test
     void annulledOnlyMonthIsGap() {
         var facts = new java.util.ArrayList<>(monthsPaidOnTime("2026-04", "2026-06", "2026-07"));
-        facts.add(withStatus("CP-ANU", "2026-05-05", CommitmentStatus.ANULADO));
+        facts.add(withStatus("CP-ANU", "2026-05-05", EstadoCompromisoEvaluacion.ANULADO));
         assertThat(PaymentRules.threeMonthStreak(facts, TODAY, SANTIAGO)).isEmpty();
     }
 
     @Test
     void annulledCommitmentDoesNotInvalidateAMonthWithOtherPaidOnTime() {
         var facts = new java.util.ArrayList<>(monthsPaidOnTime("2026-05", "2026-06", "2026-07"));
-        facts.add(withStatus("CP-ANU", "2026-06-20", CommitmentStatus.ANULADO));
+        facts.add(withStatus("CP-ANU", "2026-06-20", EstadoCompromisoEvaluacion.ANULADO));
         assertThat(PaymentRules.threeMonthStreak(facts, TODAY, SANTIAGO)).isPresent();
     }
 
@@ -151,21 +151,21 @@ class PaymentRulesTest {
     @Test
     void inReviewInvalidatesMonth() {
         var facts = new java.util.ArrayList<>(monthsPaidOnTime("2026-05", "2026-06", "2026-07"));
-        facts.add(withStatus("CP-REV", "2026-06-20", CommitmentStatus.EN_REVISION));
+        facts.add(withStatus("CP-REV", "2026-06-20", EstadoCompromisoEvaluacion.EN_REVISION));
         assertThat(PaymentRules.threeMonthStreak(facts, TODAY, SANTIAGO)).isEmpty();
     }
 
     @Test
     void unpaidOverdueInvalidatesMonth() {
         var facts = new java.util.ArrayList<>(monthsPaidOnTime("2026-05", "2026-06", "2026-07"));
-        facts.add(withStatus("CP-VENC", "2026-07-20", CommitmentStatus.VENCIDO));
+        facts.add(withStatus("CP-VENC", "2026-07-20", EstadoCompromisoEvaluacion.VENCIDO));
         assertThat(PaymentRules.threeMonthStreak(facts, TODAY, SANTIAGO)).isEmpty();
     }
 
     @Test
     void lateMonthRestartsTheRun() {
         // may ok, jun tarde, jul-ago-sep ok: la racha empieza en julio
-        var facts = new java.util.ArrayList<CommitmentFact>();
+        var facts = new java.util.ArrayList<HechoCompromiso>();
         facts.addAll(monthsPaidOnTime("2026-05", "2026-07", "2026-08", "2026-09"));
         facts.add(paid("CP-JUN", "2026-06-05", "2026-06-10T10:00:00-04:00"));
         var result = PaymentRules.threeMonthStreak(facts, TODAY, SANTIAGO).orElseThrow();
@@ -183,12 +183,12 @@ class PaymentRulesTest {
     @Test
     void amountIsNeverConsidered() {
         // rn-16: el contrato no transporta montos, por lo que no pueden influir
-        assertThat(Arrays.stream(CommitmentFact.class.getRecordComponents()).map(c -> c.getName()))
+        assertThat(Arrays.stream(HechoCompromiso.class.getRecordComponents()).map(c -> c.getName()))
                 .noneMatch(name -> name.toLowerCase().contains("monto"));
     }
 
     // --- helper ---
-    private static List<CommitmentFact> monthsPaidOnTime(String... months) {
+    private static List<HechoCompromiso> monthsPaidOnTime(String... months) {
         // 1. un compromiso por mes, pagado un dia antes del vencimiento (dia 5)
         return Arrays.stream(months)
                 .map(month -> paid("CP-" + month, month + "-05", month + "-04T10:00:00-04:00"))

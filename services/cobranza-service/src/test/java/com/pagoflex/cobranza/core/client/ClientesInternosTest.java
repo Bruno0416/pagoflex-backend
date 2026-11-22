@@ -1,7 +1,7 @@
 package com.pagoflex.cobranza.core.client;
 
 import com.pagoflex.cobranza.core.exceptions.UsuariosNoDisponible;
-import com.pagoflex.contracts.usuarios.CrearPersonaInterna;
+import com.pagoflex.contracts.usuarios.SolicitudCrearPersonaInterna;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -116,7 +116,7 @@ class ClientesInternosTest {
                  "telefono":"+56900001000"}
                 """.formatted(idPersona);
 
-        var creada = usuarios().crear(new CrearPersonaInterna("20111222-2", "Ana", "Paz", "+56 9 0000 1000", "ana@x.cl"));
+        var creada = usuarios().crear(new SolicitudCrearPersonaInterna("20111222-2", "Ana", "Paz", "ana@x.cl", "+56 9 0000 1000"));
 
         assertThat(metodoYRuta.get()).isEqualTo("POST /api/v1/usuarios/internal/personas");
         assertThat(cuerpo.get()).contains("\"rut\":\"20111222-2\"", "\"correoContacto\":\"ana@x.cl\"",
@@ -140,7 +140,7 @@ class ClientesInternosTest {
             }
         });
 
-        var persona = usuarios().crear(new CrearPersonaInterna("20111222-2", "Ana", "Paz", "+56900001000", null));
+        var persona = usuarios().crear(new SolicitudCrearPersonaInterna("20111222-2", "Ana", "Paz", null, "+56900001000"));
 
         assertThat(persona.id()).isEqualTo(idPersona);
     }

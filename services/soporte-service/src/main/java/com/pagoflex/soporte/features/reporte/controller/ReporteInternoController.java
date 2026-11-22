@@ -1,6 +1,6 @@
 package com.pagoflex.soporte.features.reporte.controller;
 
-import com.pagoflex.soporte.features.reporte.dto.response.ParticipantesResponse;
+import com.pagoflex.contracts.soporte.ParticipantesReporteInterno;
 import com.pagoflex.soporte.features.reporte.service.ReporteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +14,7 @@ public class ReporteInternoController {
     private final ReporteService service;
 
     @GetMapping("/{numero}/participantes")
-    public ResponseEntity<ParticipantesResponse> participantes(@PathVariable String numero) {
+    public ResponseEntity<ParticipantesReporteInterno> participantes(@PathVariable String numero) {
         return ResponseEntity.ok(service.participantes(numero));
     }
 }

@@ -1,8 +1,8 @@
 package com.pagoflex.usuarios.features.auth.service;
 
-import com.pagoflex.contracts.organization.AuthorizedRole;
-import com.pagoflex.contracts.organization.ValidateOrganizationCodeRequest;
-import com.pagoflex.contracts.organization.OrganizationType;
+import com.pagoflex.contracts.organizacion.RolAutorizado;
+import com.pagoflex.contracts.organizacion.SolicitudValidacionCodigoEmpresa;
+import com.pagoflex.contracts.organizacion.TipoOrganizacion;
 import com.pagoflex.core.utils.EmailUtils;
 import com.pagoflex.core.utils.RutUtils;
 import com.pagoflex.usuarios.core.client.OrganizationClient;
@@ -48,20 +48,25 @@ public class AuthServiceImpl implements AuthService {
 
         // 2. rechazar identidades duplicadas
         if (userRepo.existsByEmail(email)) throw new EmailAlreadyInUse(email);
-        if (personaRepo.existsByRut(rut)) throw new RutAlreadyInUse();
+        var existente = personaRepo.findByRutForUpdate(rut);
+        // Las personas precreadas por Cobranza solo pueden vincular
+        // una cuenta de usuario final, nunca obtener un rol interno.
+        if (existente.isPresent() && request.codigoEmpresa() != null) {
+            throw new RutAlreadyInUse();
+        }
 
         // 3. decidir el rol exclusivamente desde el codigo validado en cobranza
         Role role = Role.USUARIO_FINAL;
         UUID empresaId = null;
         if (request.codigoEmpresa() != null) {
-            if (!ValidateOrganizationCodeRequest.esValido(request.codigoEmpresa())) {
+            if (!SolicitudValidacionCodigoEmpresa.esValido(request.codigoEmpresa())) {
                 throw new InvalidOrganizationCode();
             }
             var valid = organizationClient.validate(request.codigoEmpresa());
-            if (valid.tipoEmpresa() == OrganizationType.INTERNA && valid.rolAutorizado() == AuthorizedRole.AGENTE) {
+            if (valid.tipoEmpresa() == TipoOrganizacion.INTERNA && valid.rolAutorizado() == RolAutorizado.AGENTE) {
                 role = Role.AGENTE;
-            } else if (valid.tipoEmpresa() == OrganizationType.CLIENTE
-                    && valid.rolAutorizado() == AuthorizedRole.EJECUTIVO) {
+            } else if (valid.tipoEmpresa() == TipoOrganizacion.CLIENTE
+                    && valid.rolAutorizado() == RolAutorizado.EJECUTIVO) {
                 role = Role.EJECUTIVO;
             } else {
                 throw new InvalidOrganizationCode();
@@ -71,12 +76,28 @@ public class AuthServiceImpl implements AuthService {
 
         // 4. guardar persona y cuenta vinculada en una transaccion local
         Persona persona;
-        try {
-            persona = personaRepo.saveAndFlush(Persona.builder()
-                    .rut(rut).nombres(request.nombres().trim()).apellidos(request.apellidos().trim())
-                    .empresaId(empresaId).build());
-        } catch (DataIntegrityViolationException ex) {
-            throw new RutAlreadyInUse();
+        if (existente.isPresent()) {
+            persona = existente.get();
+            String contacto = EmailUtils.normalize(persona.getCorreoContacto());
+            if (persona.getEmpresaId() != null
+                    || contacto == null
+                    || !email.equals(contacto)
+                    || userRepo.existsByPersona_Id(persona.getId())) {
+                throw new RutAlreadyInUse();
+            }
+            // No modificar UUID, nombre, contacto ni relaciones existentes.
+        } else {
+            try {
+                persona = personaRepo.saveAndFlush(Persona.builder()
+                        .rut(rut)
+                        .nombres(request.nombres().trim())
+                        .apellidos(request.apellidos().trim())
+                        .correoContacto(email)
+                        .empresaId(empresaId)
+                        .build());
+            } catch (DataIntegrityViolationException ex) {
+                throw new RutAlreadyInUse();
+            }
         }
         try {
             userRepo.saveAndFlush(Users.builder().email(email)
@@ -89,6 +110,7 @@ public class AuthServiceImpl implements AuthService {
 
     // ---------- inicio y cierre de sesion ----------
     @Override
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         String email = EmailUtils.normalize(request.correo());
         Users user = userRepo.findByEmail(email).orElseThrow(InvalidCredentials::new);
@@ -101,6 +123,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public AuthResponse refresh(String token) { return sessions.refresh(token); }
 
     @Override

@@ -1,8 +1,8 @@
 package com.pagoflex.usuarios.features.recovery.service;
 
-import com.pagoflex.contracts.email.CodeType;
-import com.pagoflex.contracts.email.EmailType;
-import com.pagoflex.contracts.email.SendEmailRequest;
+import com.pagoflex.contracts.correo.TipoCodigo;
+import com.pagoflex.contracts.correo.TipoCorreo;
+import com.pagoflex.contracts.correo.SolicitudEnvioCorreo;
 import com.pagoflex.usuarios.core.client.EmailServiceClient;
 import com.pagoflex.usuarios.features.auth.entity.Users;
 import com.pagoflex.usuarios.features.auth.session.AuthSessionService;
@@ -59,11 +59,11 @@ class RecoveryServiceImplTest {
         when(userRepo.findByEmail("usuario@example.com"))
                 .thenReturn(Optional.of(Users.builder().email("usuario@example.com").build()));
         when(sendThrottle.allow("usuario@example.com")).thenReturn(true);
-        when(codeService.generateCode("usuario@example.com", CodeType.RECOVERY)).thenReturn("ABC123");
+        when(codeService.generateCode("usuario@example.com", TipoCodigo.RECOVERY)).thenReturn("ABC123");
 
         service.requestPasswordReset(new RecoveryRequest(" USUARIO@EXAMPLE.COM "));
 
-        verify(emailClient).send(new SendEmailRequest("usuario@example.com", EmailType.RECOVERY, Map.of("code", "ABC123")));
+        verify(emailClient).send(new SolicitudEnvioCorreo("usuario@example.com", TipoCorreo.RECOVERY, Map.of("code", "ABC123")));
     }
 
     @Test
@@ -71,11 +71,11 @@ class RecoveryServiceImplTest {
         when(userRepo.findByEmail("usuario@example.com"))
                 .thenReturn(Optional.of(Users.builder().email("usuario@example.com").build()));
         when(sendThrottle.allow("usuario@example.com")).thenReturn(true);
-        when(codeService.generateCode("usuario@example.com", CodeType.RECOVERY)).thenReturn("XYZ789");
+        when(codeService.generateCode("usuario@example.com", TipoCodigo.RECOVERY)).thenReturn("XYZ789");
 
         service.resendCode(new RecoveryRequest("usuario@example.com"));
 
-        verify(emailClient).send(new SendEmailRequest("usuario@example.com", EmailType.RECOVERY, Map.of("code", "XYZ789")));
+        verify(emailClient).send(new SolicitudEnvioCorreo("usuario@example.com", TipoCorreo.RECOVERY, Map.of("code", "XYZ789")));
     }
 
     @Test
@@ -91,7 +91,7 @@ class RecoveryServiceImplTest {
 
     @Test
     void verifyDelegatesToRedisAndReturnsTemporaryToken() {
-        when(codeService.verifyCodeAndIssueResetToken("usuario@example.com", CodeType.RECOVERY, "ABC123"))
+        when(codeService.verifyCodeAndIssueResetToken("usuario@example.com", TipoCodigo.RECOVERY, "ABC123"))
                 .thenReturn("token-temporal");
 
         var response = service.verifyResetCode(new VerifyCodeRequest(" USUARIO@example.com ", "ABC123"));

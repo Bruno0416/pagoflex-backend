@@ -1,8 +1,8 @@
 package com.pagoflex.usuarios.features.recovery.service;
 
-import com.pagoflex.contracts.email.CodeType;
-import com.pagoflex.contracts.email.EmailType;
-import com.pagoflex.contracts.email.SendEmailRequest;
+import com.pagoflex.contracts.correo.TipoCodigo;
+import com.pagoflex.contracts.correo.TipoCorreo;
+import com.pagoflex.contracts.correo.SolicitudEnvioCorreo;
 import com.pagoflex.core.utils.EmailUtils;
 import com.pagoflex.usuarios.core.client.EmailServiceClient;
 import com.pagoflex.usuarios.core.exceptions.UserNotFound;
@@ -42,8 +42,8 @@ public class RecoveryServiceImpl implements RecoveryService {
             // La misma ventana de 60 s limita tanto la solicitud como el reenvio.
             if (!sendThrottle.allow(email)) return;
             // 2. generar el codigo y solicitar su envio
-            String code = verifCodeService.generateCode(email, CodeType.RECOVERY);
-            emailServiceClient.send(new SendEmailRequest(email, EmailType.RECOVERY, Map.of("code", code)));
+            String code = verifCodeService.generateCode(email, TipoCodigo.RECOVERY);
+            emailServiceClient.send(new SolicitudEnvioCorreo(email, TipoCorreo.RECOVERY, Map.of("code", code)));
         });
     }
 
@@ -55,7 +55,7 @@ public class RecoveryServiceImpl implements RecoveryService {
 
         // 2. verificar el codigo y generar la credencial temporal
         String temporaryCredential = verifCodeService.verifyCodeAndIssueResetToken(
-                email, CodeType.RECOVERY, request.codigo()
+                email, TipoCodigo.RECOVERY, request.codigo()
         );
 
         // 3. devolver la credencial de recuperacion
@@ -72,8 +72,8 @@ public class RecoveryServiceImpl implements RecoveryService {
             // La misma ventana de 60 s limita tanto la solicitud como el reenvio.
             if (!sendThrottle.allow(email)) return;
             // 2. generar el codigo y solicitar su envio
-            String code = verifCodeService.generateCode(email, CodeType.RECOVERY);
-            emailServiceClient.send(new SendEmailRequest(email, EmailType.RECOVERY, Map.of("code", code)));
+            String code = verifCodeService.generateCode(email, TipoCodigo.RECOVERY);
+            emailServiceClient.send(new SolicitudEnvioCorreo(email, TipoCorreo.RECOVERY, Map.of("code", code)));
         });
     }
 

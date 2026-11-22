@@ -1,6 +1,6 @@
 package com.pagoflex.cobranza.core.client;
 
-import com.pagoflex.contracts.vinculacion.EvaluateRecognitionsRequest;
+import com.pagoflex.contracts.vinculacion.SolicitudEvaluacionReconocimientos;
 import com.pagoflex.security.InternalApiKeyFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,7 +33,7 @@ public class ReconocimientosClient {
     /// true si reconocimientos aceptó la evaluación; nunca lanza excepciones
     public boolean evaluar(UUID usuarioId, UUID eventoId) {
         try {
-            client.post().uri("/evaluar").body(new EvaluateRecognitionsRequest(usuarioId, eventoId))
+            client.post().uri("/evaluar").body(new SolicitudEvaluacionReconocimientos(usuarioId, eventoId))
                     .retrieve().toBodilessEntity();
             return true;
         } catch (RestClientException ex) {

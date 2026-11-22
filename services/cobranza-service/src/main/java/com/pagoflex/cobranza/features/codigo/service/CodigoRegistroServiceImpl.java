@@ -6,11 +6,11 @@ import com.pagoflex.cobranza.features.codigo.repository.CodigoRegistroRepository
 import com.pagoflex.cobranza.features.empresa.entity.EmpresaCliente;
 import com.pagoflex.cobranza.features.empresa.exceptions.EmpresaNoEncontrada;
 import com.pagoflex.cobranza.features.empresa.repository.EmpresaClienteRepository;
-import com.pagoflex.contracts.organization.AuthorizedRole;
-import com.pagoflex.contracts.organization.IdentificadoresEmpresa;
-import com.pagoflex.contracts.organization.OrganizationType;
-import com.pagoflex.contracts.organization.ValidateOrganizationCodeRequest;
-import com.pagoflex.contracts.organization.ValidateOrganizationCodeResponse;
+import com.pagoflex.contracts.organizacion.RolAutorizado;
+import com.pagoflex.contracts.organizacion.IdentificadoresEmpresa;
+import com.pagoflex.contracts.organizacion.TipoOrganizacion;
+import com.pagoflex.contracts.organizacion.SolicitudValidacionCodigoEmpresa;
+import com.pagoflex.contracts.organizacion.RespuestaValidacionCodigoEmpresa;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,9 +38,9 @@ public class CodigoRegistroServiceImpl implements CodigoRegistroService {
     // ---------- validación ----------
     @Override
     @Transactional(readOnly = true)
-    public ValidateOrganizationCodeResponse validar(String codigo) {
+    public RespuestaValidacionCodigoEmpresa validar(String codigo) {
         // 1. formato y bloqueo por demasiados fallos del mismo prefijo
-        if (!ValidateOrganizationCodeRequest.esValido(codigo)) throw new CodigoInvalido();
+        if (!SolicitudValidacionCodigoEmpresa.esValido(codigo)) throw new CodigoInvalido();
         String prefijo = GeneradorCodigo.prefijoDe(codigo);
         if (limitador.bloqueado(prefijo)) throw new CodigoInvalido();
 
@@ -49,7 +49,7 @@ public class CodigoRegistroServiceImpl implements CodigoRegistroService {
         boolean coincide = encoder.matches(codigo, registro.map(CodigoRegistro::getHash).orElseGet(this::relleno));
 
         // 3. activo, vigente y con organización y rol consistentes
-        Optional<ValidateOrganizationCodeResponse> respuesta = registro
+        Optional<RespuestaValidacionCodigoEmpresa> respuesta = registro
                 .filter(r -> coincide && r.isActivo() && !vencido(r))
                 .flatMap(this::respuesta);
         if (respuesta.isEmpty()) {
@@ -64,7 +64,7 @@ public class CodigoRegistroServiceImpl implements CodigoRegistroService {
     @Override
     @Transactional
     public String generarParaAgente(Instant expiraEn) {
-        return generar(OrganizationType.INTERNA, AuthorizedRole.AGENTE, IdentificadoresEmpresa.INTERNA, expiraEn);
+        return generar(TipoOrganizacion.INTERNA, RolAutorizado.AGENTE, IdentificadoresEmpresa.INTERNA, expiraEn);
     }
 
     @Override
@@ -74,7 +74,7 @@ public class CodigoRegistroServiceImpl implements CodigoRegistroService {
         if (empresaId == null || !empresaRepo.existsById(empresaId)) {
             throw new EmpresaNoEncontrada(String.valueOf(empresaId));
         }
-        return generar(OrganizationType.CLIENTE, AuthorizedRole.EJECUTIVO, empresaId, expiraEn);
+        return generar(TipoOrganizacion.CLIENTE, RolAutorizado.EJECUTIVO, empresaId, expiraEn);
     }
 
     @Override
@@ -84,7 +84,7 @@ public class CodigoRegistroServiceImpl implements CodigoRegistroService {
     }
 
     // --- helpers privados ---
-    private String generar(OrganizationType tipo, AuthorizedRole rol, UUID empresaId, Instant expiraEn) {
+    private String generar(TipoOrganizacion tipo, RolAutorizado rol, UUID empresaId, Instant expiraEn) {
         // 1. prefijo libre y secreto de 128 bits
         String prefijo = prefijoLibre();
         String codigo = GeneradorCodigo.armar(prefijo, GeneradorCodigo.secretoAleatorio());
@@ -111,18 +111,18 @@ public class CodigoRegistroServiceImpl implements CodigoRegistroService {
         throw new IllegalStateException("No hay prefijos de código libres");
     }
 
-    private Optional<ValidateOrganizationCodeResponse> respuesta(CodigoRegistro r) {
+    private Optional<RespuestaValidacionCodigoEmpresa> respuesta(CodigoRegistro r) {
         // 1. solo se aceptan INTERNA + AGENTE y CLIENTE + EJECUTIVO
-        if (r.getTipo() == OrganizationType.INTERNA && r.getRol() == AuthorizedRole.AGENTE
+        if (r.getTipo() == TipoOrganizacion.INTERNA && r.getRol() == RolAutorizado.AGENTE
                 && IdentificadoresEmpresa.INTERNA.equals(r.getEmpresaId())) {
-            return Optional.of(new ValidateOrganizationCodeResponse(IdentificadoresEmpresa.INTERNA,
+            return Optional.of(new RespuestaValidacionCodigoEmpresa(IdentificadoresEmpresa.INTERNA,
                     IdentificadoresEmpresa.NOMBRE_INTERNA, r.getTipo(), r.getRol()));
         }
-        if (r.getTipo() == OrganizationType.CLIENTE && r.getRol() == AuthorizedRole.EJECUTIVO) {
+        if (r.getTipo() == TipoOrganizacion.CLIENTE && r.getRol() == RolAutorizado.EJECUTIVO) {
             // 2. la empresa cliente tiene que existir en cobranza
             return empresaRepo.findById(r.getEmpresaId())
                     .map(EmpresaCliente::getNombreFantasia)
-                    .map(nombre -> new ValidateOrganizationCodeResponse(
+                    .map(nombre -> new RespuestaValidacionCodigoEmpresa(
                             r.getEmpresaId(), nombre, r.getTipo(), r.getRol()));
         }
         return Optional.empty();

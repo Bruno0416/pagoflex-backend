@@ -7,7 +7,7 @@ import com.pagoflex.cobranza.features.compromiso.repository.CompromisoRepository
 import com.pagoflex.cobranza.features.compromiso.repository.PagoRepository;
 import com.pagoflex.cobranza.features.empresa.entity.EmpresaCliente;
 import com.pagoflex.cobranza.features.empresa.repository.EmpresaClienteRepository;
-import com.pagoflex.contracts.usuarios.CrearPersonaInterna;
+import com.pagoflex.contracts.usuarios.SolicitudCrearPersonaInterna;
 import com.pagoflex.contracts.usuarios.PersonaInterna;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -166,7 +166,7 @@ public class CargaDemo {
     // --- helpers privados ---
     private void persona(String codigo, String rut, String nombres, String apellidos, String correo, String telefono) {
         personas.put(codigo, usuarios.porRut(rut).orElseGet(() ->
-                usuarios.crear(new CrearPersonaInterna(rut, nombres, apellidos, telefono, correo))));
+                usuarios.crear(new SolicitudCrearPersonaInterna(rut, nombres, apellidos, correo, telefono))));
     }
 
     private Compromiso compromiso(String folio, String usuario, String empresa, String concepto,

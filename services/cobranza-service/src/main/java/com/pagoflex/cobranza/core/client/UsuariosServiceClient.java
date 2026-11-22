@@ -1,7 +1,9 @@
 package com.pagoflex.cobranza.core.client;
 
+import com.pagoflex.contracts.usuarios.RespuestaPersonaInterna;
+
 import com.pagoflex.cobranza.core.exceptions.UsuariosNoDisponible;
-import com.pagoflex.contracts.usuarios.CrearPersonaInterna;
+import com.pagoflex.contracts.usuarios.SolicitudCrearPersonaInterna;
 import com.pagoflex.contracts.usuarios.PersonaInterna;
 import com.pagoflex.security.InternalApiKeyFilter;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,14 +54,14 @@ public class UsuariosServiceClient {
     }
 
     // ---------- alta RN-20 ----------
-    public PersonaInterna crear(CrearPersonaInterna request) {
+    public PersonaInterna crear(SolicitudCrearPersonaInterna request) {
         try {
-            PersonaRespuesta creada = client.post().uri("/personas")
-                    .bodyValue(new CrearPersonaSolicitud(request.rut(), request.nombres(), request.apellidos(),
-                            request.correo(), limpiarTelefono(request.telefono())))
-                    .retrieve().bodyToMono(PersonaRespuesta.class).block(ESPERA);
+            RespuestaPersonaInterna creada = client.post().uri("/personas")
+                    .bodyValue(new SolicitudCrearPersonaInterna(request.rut(), request.nombres(), request.apellidos(),
+                            request.correoContacto(), limpiarTelefono(request.telefono())))
+                    .retrieve().bodyToMono(RespuestaPersonaInterna.class).block(ESPERA);
             if (creada == null) throw new UsuariosNoDisponible();
-            return creada.aContrato();
+            return creada.aPersonaInterna();
         } catch (WebClientResponseException.Conflict ex) {
             // 1. alguien la creó recién: usar la existente
             return porRut(request.rut()).orElseThrow(UsuariosNoDisponible::new);
@@ -70,9 +72,9 @@ public class UsuariosServiceClient {
 
     // --- helpers privados ---
     private PersonaInterna get(String uri, Object variable) {
-        PersonaRespuesta respuesta = client.get().uri(uri, variable).retrieve()
-                .bodyToMono(PersonaRespuesta.class).block(ESPERA);
-        return respuesta == null ? null : respuesta.aContrato();
+        RespuestaPersonaInterna respuesta = client.get().uri(uri, variable).retrieve()
+                .bodyToMono(RespuestaPersonaInterna.class).block(ESPERA);
+        return respuesta == null ? null : respuesta.aPersonaInterna();
     }
 
     private Optional<PersonaInterna> buscar(Supplier<PersonaInterna> llamada) {
@@ -92,20 +94,5 @@ public class UsuariosServiceClient {
     // usuarios guarda el teléfono sin espacios ni signos de formato
     private static String limpiarTelefono(String telefono) {
         return telefono == null ? null : telefono.replaceAll("[\\s()\\-]", "");
-    }
-
-    // ---------- formato de usuarios-service ----------
-    private record CrearPersonaSolicitud(String rut, String nombres, String apellidos,
-                                         String correoContacto, String telefono) {
-    }
-
-    private record PersonaRespuesta(UUID idPersona, String rut, String nombres, String apellidos,
-                                    String correoContacto, String telefono, UUID idUsuario,
-                                    String correoCuenta, UUID idEmpresa) {
-        // con cuenta el correo es el de acceso; sin cuenta, el de contacto
-        PersonaInterna aContrato() {
-            return new PersonaInterna(idPersona, rut, nombres, apellidos,
-                    correoCuenta != null ? correoCuenta : correoContacto, telefono, idUsuario, idEmpresa);
-        }
     }
 }

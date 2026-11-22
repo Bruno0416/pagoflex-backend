@@ -4,7 +4,7 @@ import com.pagoflex.security.AuthenticatedUser;
 import com.pagoflex.soporte.features.reporte.dto.request.ReportarRequest;
 import com.pagoflex.soporte.features.reporte.dto.request.ResolverRequest;
 import com.pagoflex.soporte.features.reporte.dto.response.PaginaResponse;
-import com.pagoflex.soporte.features.reporte.dto.response.ParticipantesResponse;
+import com.pagoflex.contracts.soporte.ParticipantesReporteInterno;
 import com.pagoflex.soporte.features.reporte.dto.response.ReporteResponse;
 import com.pagoflex.soporte.features.reporte.entity.EstadoReporte;
 
@@ -35,5 +35,5 @@ public interface ReporteService {
     ReporteResponse reporteActivo(UUID ejecutivoId, String folio);
 
     // ---------- interno ----------
-    ParticipantesResponse participantes(String numero);
+    ParticipantesReporteInterno participantes(String numero);
 }

@@ -1,13 +1,13 @@
 package com.pagoflex.cobranza.features.codigo.service;
 
-import com.pagoflex.contracts.organization.ValidateOrganizationCodeResponse;
+import com.pagoflex.contracts.organizacion.RespuestaValidacionCodigoEmpresa;
 
 import java.time.Instant;
 import java.util.UUID;
 
 public interface CodigoRegistroService {
     /// Comprueba un código de registro; cualquier fallo responde igual (CodigoInvalido)
-    ValidateOrganizationCodeResponse validar(String codigo);
+    RespuestaValidacionCodigoEmpresa validar(String codigo);
 
     /// Genera un código de agente de la organización interna; el valor solo se devuelve aquí, nunca se guarda
     String generarParaAgente(Instant expiraEn);

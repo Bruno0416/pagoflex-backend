@@ -1,4 +1,4 @@
-package com.pagoflex.contracts.organization;
+package com.pagoflex.contracts.organizacion;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;

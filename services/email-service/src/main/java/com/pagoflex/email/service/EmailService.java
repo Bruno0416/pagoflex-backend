@@ -1,7 +1,7 @@
 package com.pagoflex.email.service;
 
-import com.pagoflex.contracts.email.SendEmailRequest;
+import com.pagoflex.contracts.correo.SolicitudEnvioCorreo;
 
 public interface EmailService {
-    void send(SendEmailRequest request);
+    void send(SolicitudEnvioCorreo request);
 }

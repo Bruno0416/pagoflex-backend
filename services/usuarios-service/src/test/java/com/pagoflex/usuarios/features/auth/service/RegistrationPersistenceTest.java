@@ -5,6 +5,7 @@ import com.pagoflex.usuarios.features.auth.exceptions.EmailAlreadyInUse;
 import com.pagoflex.usuarios.features.auth.exceptions.RutAlreadyInUse;
 import com.pagoflex.usuarios.features.auth.repository.UserRepository;
 import com.pagoflex.usuarios.features.profile.repository.PersonaRepository;
+import com.pagoflex.usuarios.features.profile.entity.Persona;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -54,4 +55,23 @@ class RegistrationPersistenceTest {
                 .isInstanceOf(EmailAlreadyInUse.class);
         assertThat(personaRepo.count()).isEqualTo(peopleBefore);
     }
+
+    @Test
+    void linksExistingPersonWithoutChangingUuid() {
+        var persona = personaRepo.saveAndFlush(Persona.builder()
+                .rut("99999999-9").nombres("Original")
+                .apellidos("Prueba")
+                .correoContacto("usuario@example.com").build());
+        var originalId = persona.getId();
+        long peopleBefore = personaRepo.count();
+
+        service.register(new RegisterRequest(
+                "usuario@example.com", "Clave123!", "99999999-9",
+                "Usuario", "Prueba", null));
+
+        var cuenta = userRepo.findByEmail("usuario@example.com").orElseThrow();
+        assertThat(cuenta.getPersona().getId()).isEqualTo(originalId);
+        assertThat(personaRepo.count()).isEqualTo(peopleBefore);
+    }
+
 }

@@ -1,7 +1,7 @@
 package com.pagoflex.cobranza.features.compromiso.controller;
 
 import com.pagoflex.cobranza.features.compromiso.service.HechosPagoService;
-import com.pagoflex.contracts.cobranza.PaymentFactsResponse;
+import com.pagoflex.contracts.cobranza.RespuestaHechosPago;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,7 +19,7 @@ public class HechosPagoInternoController {
     private final HechosPagoService service;
 
     @GetMapping("/{usuarioId}/hechos-pago")
-    public ResponseEntity<PaymentFactsResponse> hechosPago(@PathVariable UUID usuarioId) {
+    public ResponseEntity<RespuestaHechosPago> hechosPago(@PathVariable UUID usuarioId) {
         return ResponseEntity.ok(service.hechos(usuarioId));
     }
 }

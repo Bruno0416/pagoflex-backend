@@ -22,7 +22,7 @@ import com.pagoflex.cobranza.features.compromiso.rules.ReglasCompromiso;
 import com.pagoflex.cobranza.features.empresa.dto.response.EmpresaResponse;
 import com.pagoflex.cobranza.features.empresa.entity.EmpresaCliente;
 import com.pagoflex.cobranza.features.empresa.service.EjecutivoService;
-import com.pagoflex.contracts.usuarios.CrearPersonaInterna;
+import com.pagoflex.contracts.usuarios.SolicitudCrearPersonaInterna;
 import com.pagoflex.contracts.usuarios.PersonaInterna;
 import com.pagoflex.core.utils.EmailUtils;
 import com.pagoflex.core.utils.RutUtils;
@@ -235,8 +235,8 @@ public class CobranzaEjecutivoServiceImpl implements CobranzaEjecutivoService {
             throw new DatosCompromisoInvalidos(
                     "La persona no está registrada: ingresa nombres, apellidos, correo y teléfono");
         }
-        return usuarios.crear(new CrearPersonaInterna(rut, request.nombres().trim(), request.apellidos().trim(),
-                request.telefono().trim(), EmailUtils.normalize(request.correo())));
+        return usuarios.crear(new SolicitudCrearPersonaInterna(rut, request.nombres().trim(), request.apellidos().trim(),
+                EmailUtils.normalize(request.correo()), request.telefono().trim()));
     }
 
     private void validarCuotas(Integer numero, Integer total) {

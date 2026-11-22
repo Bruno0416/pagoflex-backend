@@ -1,7 +1,7 @@
 package com.pagoflex.usuarios.core.client;
 
-import com.pagoflex.contracts.organization.AuthorizedRole;
-import com.pagoflex.contracts.organization.OrganizationType;
+import com.pagoflex.contracts.organizacion.RolAutorizado;
+import com.pagoflex.contracts.organizacion.TipoOrganizacion;
 import com.pagoflex.usuarios.features.auth.exceptions.InvalidOrganizationCode;
 import com.pagoflex.usuarios.features.auth.exceptions.OrganizationServiceUnavailable;
 import com.sun.net.httpserver.HttpServer;
@@ -52,8 +52,8 @@ class OrganizationClientTest {
                 + "\",\"nombreEmpresa\":\"Empresa demo\",\"tipoEmpresa\":\"CLIENTE\",\"rolAutorizado\":\"EJECUTIVO\"}";
         var response = client.validate("CL34EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ");
         assertThat(response.idEmpresa()).isEqualTo(id);
-        assertThat(response.tipoEmpresa()).isEqualTo(OrganizationType.CLIENTE);
-        assertThat(response.rolAutorizado()).isEqualTo(AuthorizedRole.EJECUTIVO);
+        assertThat(response.tipoEmpresa()).isEqualTo(TipoOrganizacion.CLIENTE);
+        assertThat(response.rolAutorizado()).isEqualTo(RolAutorizado.EJECUTIVO);
         assertThat(receivedKey).isEqualTo("clave-de-servicio");
         assertThat(receivedBody).contains("\"codigo\":\"CL34EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ\"");
         assertThat(receivedBody).doesNotContain("hash", "rolAutorizado");

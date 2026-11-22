@@ -114,7 +114,7 @@ class ProfileServiceImplTest {
         when(userRepo.findByIdForUpdate(USER_ID)).thenReturn(Optional.of(user));
         when(encoder.matches("correcta", "hash")).thenReturn(true);
         when(sessions.replaceCurrent(user))
-                .thenReturn(new AuthResponse("jwt-nuevo", "refresh-nuevo", "Bearer", 900));
+                .thenReturn(new AuthResponse("jwt-nuevo", "refresh-nuevo", Role.USUARIO_FINAL));
         var result = service.updateProfile(new UpdateProfileRequest(
                 null, null, " NUEVO@example.com ", "correcta"));
         assertThat(user.getEmail()).isEqualTo("nuevo@example.com");

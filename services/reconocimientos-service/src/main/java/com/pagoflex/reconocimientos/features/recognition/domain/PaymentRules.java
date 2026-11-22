@@ -1,7 +1,7 @@
 package com.pagoflex.reconocimientos.features.recognition.domain;
 
-import com.pagoflex.contracts.cobranza.CommitmentFact;
-import com.pagoflex.contracts.cobranza.CommitmentStatus;
+import com.pagoflex.contracts.cobranza.HechoCompromiso;
+import com.pagoflex.contracts.cobranza.EstadoCompromisoEvaluacion;
 import com.pagoflex.reconocimientos.features.recognition.entity.RecognitionCode;
 
 import java.time.Instant;
@@ -25,7 +25,7 @@ public final class PaymentRules {
     }
 
     // ---------- evaluacion completa ----------
-    public static List<RecognitionCandidate> evaluate(List<CommitmentFact> facts, LocalDate today, ZoneId zone) {
+    public static List<RecognitionCandidate> evaluate(List<HechoCompromiso> facts, LocalDate today, ZoneId zone) {
         // 1. reunir los reconocimientos que corresponden segun los hechos
         List<RecognitionCandidate> result = new ArrayList<>();
         firstOnTimePayment(facts, zone).ifPresent(result::add);
@@ -34,12 +34,12 @@ public final class PaymentRules {
     }
 
     // ---------- primer pago a tiempo ----------
-    public static Optional<RecognitionCandidate> firstOnTimePayment(List<CommitmentFact> facts, ZoneId zone) {
+    public static Optional<RecognitionCandidate> firstOnTimePayment(List<HechoCompromiso> facts, ZoneId zone) {
         // 1. elegir el pago a tiempo mas antiguo; el empate lo resuelve el menor folio
         return facts.stream()
                 .filter(fact -> paidOnTime(fact, zone))
-                .min(Comparator.<CommitmentFact, Instant>comparing(fact -> fact.pago().fechaHoraPago().toInstant())
-                        .thenComparing(CommitmentFact::folio))
+                .min(Comparator.<HechoCompromiso, Instant>comparing(fact -> fact.pago().fechaHoraPago().toInstant())
+                        .thenComparing(HechoCompromiso::folio))
                 .map(fact -> new RecognitionCandidate(RecognitionCode.PRIMER_PAGO_A_TIEMPO,
                         RecognitionCandidate.NO_REFERENCE,
                         "Pago " + fact.folio() + " del "
@@ -47,19 +47,19 @@ public final class PaymentRules {
     }
 
     // ---------- tres meses al dia ----------
-    public static Optional<RecognitionCandidate> threeMonthStreak(List<CommitmentFact> facts, LocalDate today,
+    public static Optional<RecognitionCandidate> threeMonthStreak(List<HechoCompromiso> facts, LocalDate today,
                                                                   ZoneId zone) {
         // 1. agrupar por mes de vencimiento solo los meses cerrados, sin anulados
         YearMonth current = YearMonth.from(today);
-        Map<YearMonth, List<CommitmentFact>> byMonth = facts.stream()
-                .filter(fact -> fact.estado() != CommitmentStatus.ANULADO)
+        Map<YearMonth, List<HechoCompromiso>> byMonth = facts.stream()
+                .filter(fact -> fact.estado() != EstadoCompromisoEvaluacion.ANULADO)
                 .filter(fact -> YearMonth.from(fact.fechaVencimiento()).isBefore(current))
                 .collect(Collectors.groupingBy(fact -> YearMonth.from(fact.fechaVencimiento()),
                         TreeMap::new, Collectors.toList()));
 
         // 2. recorrer los meses en orden manteniendo la corrida consecutiva
         List<YearMonth> run = new ArrayList<>();
-        for (Map.Entry<YearMonth, List<CommitmentFact>> entry : byMonth.entrySet()) {
+        for (Map.Entry<YearMonth, List<HechoCompromiso>> entry : byMonth.entrySet()) {
             YearMonth month = entry.getKey();
             if (!entry.getValue().stream().allMatch(fact -> paidOnTime(fact, zone))) {
                 run.clear();
@@ -80,9 +80,9 @@ public final class PaymentRules {
     }
 
     // --- helper ---
-    private static boolean paidOnTime(CommitmentFact fact, ZoneId zone) {
+    private static boolean paidOnTime(HechoCompromiso fact, ZoneId zone) {
         // 1. solo cuenta un pago confirmado cuya fecha local no supera el vencimiento
-        if (fact.estado() != CommitmentStatus.PAGADO || fact.pago() == null) return false;
+        if (fact.estado() != EstadoCompromisoEvaluacion.PAGADO || fact.pago() == null) return false;
         LocalDate paidOn = fact.pago().fechaHoraPago().atZoneSameInstant(zone).toLocalDate();
         return !paidOn.isAfter(fact.fechaVencimiento());
     }

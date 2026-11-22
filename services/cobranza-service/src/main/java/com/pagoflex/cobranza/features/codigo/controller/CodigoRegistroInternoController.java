@@ -1,8 +1,8 @@
 package com.pagoflex.cobranza.features.codigo.controller;
 
 import com.pagoflex.cobranza.features.codigo.service.CodigoRegistroService;
-import com.pagoflex.contracts.organization.ValidateOrganizationCodeRequest;
-import com.pagoflex.contracts.organization.ValidateOrganizationCodeResponse;
+import com.pagoflex.contracts.organizacion.SolicitudValidacionCodigoEmpresa;
+import com.pagoflex.contracts.organizacion.RespuestaValidacionCodigoEmpresa;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +19,8 @@ public class CodigoRegistroInternoController {
     private final CodigoRegistroService service;
 
     @PostMapping("/validar")
-    public ResponseEntity<ValidateOrganizationCodeResponse> validar(
-            @Valid @RequestBody ValidateOrganizationCodeRequest request) {
+    public ResponseEntity<RespuestaValidacionCodigoEmpresa> validar(
+            @Valid @RequestBody SolicitudValidacionCodigoEmpresa request) {
         return ResponseEntity.ok(service.validar(request.codigo()));
     }
 }

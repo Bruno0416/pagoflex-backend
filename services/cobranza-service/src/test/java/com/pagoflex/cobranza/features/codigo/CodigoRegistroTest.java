@@ -9,9 +9,9 @@ import com.pagoflex.cobranza.features.empresa.exceptions.EmpresaNoEncontrada;
 import com.pagoflex.cobranza.features.empresa.repository.EmpresaClienteRepository;
 import com.pagoflex.cobranza.support.RedisPrueba;
 import com.pagoflex.cobranza.support.RelojFijo;
-import com.pagoflex.contracts.organization.AuthorizedRole;
-import com.pagoflex.contracts.organization.IdentificadoresEmpresa;
-import com.pagoflex.contracts.organization.OrganizationType;
+import com.pagoflex.contracts.organizacion.RolAutorizado;
+import com.pagoflex.contracts.organizacion.IdentificadoresEmpresa;
+import com.pagoflex.contracts.organizacion.TipoOrganizacion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -169,11 +169,11 @@ class CodigoRegistroTest {
 
     @Test
     void combinacionesDeOrganizacionYRolNoPermitidasSeRechazan() throws Exception {
-        String interEjecutivo = guardarManual(OrganizationType.INTERNA, AuthorizedRole.EJECUTIVO,
+        String interEjecutivo = guardarManual(TipoOrganizacion.INTERNA, RolAutorizado.EJECUTIVO,
                 IdentificadoresEmpresa.INTERNA);
-        String clienteAgente = guardarManual(OrganizationType.CLIENTE, AuthorizedRole.AGENTE, empresaAltos);
-        String internaOtraOrg = guardarManual(OrganizationType.INTERNA, AuthorizedRole.AGENTE, empresaAltos);
-        String clienteInexistente = guardarManual(OrganizationType.CLIENTE, AuthorizedRole.EJECUTIVO, UUID.randomUUID());
+        String clienteAgente = guardarManual(TipoOrganizacion.CLIENTE, RolAutorizado.AGENTE, empresaAltos);
+        String internaOtraOrg = guardarManual(TipoOrganizacion.INTERNA, RolAutorizado.AGENTE, empresaAltos);
+        String clienteInexistente = guardarManual(TipoOrganizacion.CLIENTE, RolAutorizado.EJECUTIVO, UUID.randomUUID());
 
         for (String codigo : new String[]{interEjecutivo, clienteAgente, internaOtraOrg, clienteInexistente}) {
             mvc.perform(validar(codigo)).andExpect(status().isNotFound());
@@ -212,7 +212,7 @@ class CodigoRegistroTest {
     }
 
     // inserta un registro con hash válido pero con una combinación que el generador nunca produce
-    private String guardarManual(OrganizationType tipo, AuthorizedRole rol, UUID empresaId) {
+    private String guardarManual(TipoOrganizacion tipo, RolAutorizado rol, UUID empresaId) {
         String prefijo = GeneradorCodigo.prefijoAleatorio();
         String codigo = GeneradorCodigo.armar(prefijo, GeneradorCodigo.secretoAleatorio());
         codigoRepo.save(CodigoRegistro.builder().prefijo(prefijo).hash(encoder.encode(codigo)).empresaId(empresaId)

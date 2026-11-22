@@ -3,7 +3,7 @@ package com.pagoflex.usuarios.features.auth.service;
 import com.pagoflex.usuarios.core.client.OrganizationClient;
 import com.pagoflex.usuarios.features.auth.session.AuthSessionService;
 import com.pagoflex.usuarios.features.auth.dto.response.AuthResponse;
-import com.pagoflex.contracts.organization.*;
+import com.pagoflex.contracts.organizacion.*;
 import com.pagoflex.usuarios.features.auth.exceptions.InvalidOrganizationCode;
 import com.pagoflex.usuarios.features.auth.exceptions.OrganizationServiceUnavailable;
 import java.util.UUID;
@@ -73,7 +73,7 @@ class AuthServiceImplTest {
         ArgumentCaptor<Persona> personaCaptor = ArgumentCaptor.forClass(Persona.class);
         verify(personaRepo).saveAndFlush(personaCaptor.capture());
         assertThat(personaCaptor.getValue().getRut()).isEqualTo("99999999-9");
-        verify(personaRepo).existsByRut("99999999-9"); // unicidad en formato persistido
+        verify(personaRepo).findByRutForUpdate("99999999-9"); // unicidad en formato persistido
         assertThat(captor.getValue().getPersona()).isSameAs(personaCaptor.getValue());
     }
 
@@ -89,7 +89,12 @@ class AuthServiceImplTest {
 
     @Test
     void registerRejectsDuplicateRutWithoutSavingAnything() {
-        when(personaRepo.existsByRut("99999999-9")).thenReturn(true);
+        UUID id = UUID.randomUUID();
+        when(personaRepo.findByRutForUpdate("99999999-9"))
+                .thenReturn(Optional.of(Persona.builder()
+                        .id(id).rut("99999999-9")
+                        .correoContacto("usuario@example.com").build()));
+        when(userRepo.existsByPersona_Id(id)).thenReturn(true);
 
         assertThatThrownBy(() -> service.register(new RegisterRequest(
                 "usuario@example.com", "Clave123!", "99999999-9", "Usuario", "Prueba", null)))
@@ -111,7 +116,7 @@ class AuthServiceImplTest {
     void loginAuthenticatesAndReturnsJwt() {
         Users user = Users.builder().email("usuario@example.com").build();
         when(userRepo.findByEmail("usuario@example.com")).thenReturn(Optional.of(user));
-        when(sessions.issue(user)).thenReturn(new AuthResponse("jwt-de-prueba", "refresh-de-prueba", "Bearer", 900));
+        when(sessions.issue(user)).thenReturn(new AuthResponse("jwt-de-prueba", "refresh-de-prueba", Role.USUARIO_FINAL));
 
         var response = service.login(new LoginRequest(" USUARIO@example.com ", "contrasena123"));
 
@@ -138,8 +143,8 @@ class AuthServiceImplTest {
     void registerAgentWithValidInternalCode() {
         UUID empresa = UUID.randomUUID();
         when(organizationClient.validate("PF12AG-ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-                .thenReturn(new ValidateOrganizationCodeResponse(empresa, "PagoFlex",
-                        OrganizationType.INTERNA, AuthorizedRole.AGENTE));
+                .thenReturn(new RespuestaValidacionCodigoEmpresa(empresa, "PagoFlex",
+                        TipoOrganizacion.INTERNA, RolAutorizado.AGENTE));
         when(personaRepo.saveAndFlush(any(Persona.class))).thenAnswer(inv -> inv.getArgument(0));
         when(encoder.encode("Clave123!")).thenReturn("hash");
 
@@ -156,8 +161,8 @@ class AuthServiceImplTest {
     void registerExecutiveWithValidClientCode() {
         UUID empresa = UUID.randomUUID();
         when(organizationClient.validate("CL34EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-                .thenReturn(new ValidateOrganizationCodeResponse(empresa, "Empresa",
-                        OrganizationType.CLIENTE, AuthorizedRole.EJECUTIVO));
+                .thenReturn(new RespuestaValidacionCodigoEmpresa(empresa, "Empresa",
+                        TipoOrganizacion.CLIENTE, RolAutorizado.EJECUTIVO));
         when(personaRepo.saveAndFlush(any(Persona.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.register(new RegisterRequest("usuario@example.com", "Clave123!", "99999999-9",
@@ -172,8 +177,8 @@ class AuthServiceImplTest {
     @Test
     void rejectsCodeWithMismatchedRoleAndOrganization() {
         when(organizationClient.validate("CL56EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-                .thenReturn(new ValidateOrganizationCodeResponse(UUID.randomUUID(), "Empresa",
-                        OrganizationType.CLIENTE, AuthorizedRole.AGENTE));
+                .thenReturn(new RespuestaValidacionCodigoEmpresa(UUID.randomUUID(), "Empresa",
+                        TipoOrganizacion.CLIENTE, RolAutorizado.AGENTE));
         assertThatThrownBy(() -> service.register(new RegisterRequest(
                 "usuario@example.com", "Clave123!", "99999999-9", "Usuario", "Prueba", "CL56EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ")))
                 .isInstanceOf(InvalidOrganizationCode.class);
@@ -206,11 +211,81 @@ class AuthServiceImplTest {
 
     @Test
     void refreshDelegatesAndLogoutRevokesSession() {
-        AuthResponse result = new AuthResponse("access", "refresh", "Bearer", 900);
+        AuthResponse result = new AuthResponse("access", "refresh", Role.USUARIO_FINAL);
         when(sessions.refresh("old-refresh")).thenReturn(result);
         assertThat(service.refresh("old-refresh")).isEqualTo(result);
         service.logout();
         verify(sessions).revokeCurrent();
+    }
+
+
+    @Test
+    void registerLinksPrecreatedPersonaWithMatchingContact() {
+        UUID id = UUID.randomUUID();
+        Persona persona = Persona.builder().id(id)
+                .rut("99999999-9").nombres("Original")
+                .apellidos("Conservado")
+                .correoContacto(" USUARIO@EXAMPLE.COM ").build();
+
+        when(personaRepo.findByRutForUpdate("99999999-9"))
+                .thenReturn(Optional.of(persona));
+        when(encoder.encode("Clave123!")).thenReturn("hash");
+
+        service.register(new RegisterRequest(
+                "usuario@example.com", "Clave123!", "99999999-9",
+                "NombreNuevo", "ApellidoNuevo", null));
+
+        ArgumentCaptor<Users> captor = ArgumentCaptor.forClass(Users.class);
+        verify(userRepo).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getPersona()).isSameAs(persona);
+        assertThat(captor.getValue().getPersona().getId()).isEqualTo(id);
+        assertThat(persona.getNombres()).isEqualTo("Original");
+        assertThat(captor.getValue().getRole()).isEqualTo(Role.USUARIO_FINAL);
+        verify(personaRepo, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void registerRejectsPrecreatedPersonaWithDifferentEmail() {
+        Persona persona = Persona.builder().id(UUID.randomUUID())
+                .rut("99999999-9")
+                .correoContacto("otro@example.com").build();
+        when(personaRepo.findByRutForUpdate("99999999-9"))
+                .thenReturn(Optional.of(persona));
+
+        assertThatThrownBy(() -> service.register(new RegisterRequest(
+                "usuario@example.com", "Clave123!", "99999999-9",
+                "Usuario", "Prueba", null)))
+                .isInstanceOf(RutAlreadyInUse.class);
+        verify(userRepo, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void registerRejectsPrecreatedPersonaWithoutContactEmail() {
+        Persona persona = Persona.builder().id(UUID.randomUUID())
+                .rut("99999999-9").build();
+        when(personaRepo.findByRutForUpdate("99999999-9"))
+                .thenReturn(Optional.of(persona));
+
+        assertThatThrownBy(() -> service.register(new RegisterRequest(
+                "usuario@example.com", "Clave123!", "99999999-9",
+                "Usuario", "Prueba", null)))
+                .isInstanceOf(RutAlreadyInUse.class);
+        verify(userRepo, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void precreatedConsumerCannotBecomeInternalStaff() {
+        Persona persona = Persona.builder().id(UUID.randomUUID())
+                .rut("99999999-9")
+                .correoContacto("usuario@example.com").build();
+        when(personaRepo.findByRutForUpdate("99999999-9"))
+                .thenReturn(Optional.of(persona));
+
+        assertThatThrownBy(() -> service.register(new RegisterRequest(
+                "usuario@example.com", "Clave123!", "99999999-9",
+                "Usuario", "Prueba", "PF12AG")))
+                .isInstanceOf(RutAlreadyInUse.class);
+        verifyNoInteractions(organizationClient);
     }
 
 }

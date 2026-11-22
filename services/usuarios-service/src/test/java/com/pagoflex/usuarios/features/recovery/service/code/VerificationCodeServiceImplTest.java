@@ -1,6 +1,6 @@
 package com.pagoflex.usuarios.features.recovery.service.code;
 
-import com.pagoflex.contracts.email.CodeType;
+import com.pagoflex.contracts.correo.TipoCodigo;
 import com.pagoflex.usuarios.core.cache.RedisExpiringCache;
 import com.pagoflex.usuarios.core.cache.RedisTransactionExecutor;
 import com.pagoflex.usuarios.features.recovery.exceptions.InvalidRecoveryCode;
@@ -57,7 +57,7 @@ class VerificationCodeServiceImplTest {
     void generateStoresOnlyCodeHashAndExpiration() {
         when(operations.exec()).thenReturn(List.of(1L, 1L, true));
 
-        String code = service.generateCode("user@example.com", CodeType.RECOVERY);
+        String code = service.generateCode("user@example.com", TipoCodigo.RECOVERY);
 
         assertThat(code).matches("[A-Z0-9]{6}");
         verify(operations).multi();
@@ -71,7 +71,7 @@ class VerificationCodeServiceImplTest {
     @Test
     void verifyRejectsAnExpiredOrPreviouslyConsumedCode() {
         assertThatThrownBy(() -> service.verifyCodeAndIssueResetToken(
-                "user@example.com", CodeType.RECOVERY, "ABC123"))
+                "user@example.com", TipoCodigo.RECOVERY, "ABC123"))
                 .isInstanceOf(InvalidRecoveryCode.class);
         verify(operations).unwatch();
         verify(operations).multi();
@@ -86,7 +86,7 @@ class VerificationCodeServiceImplTest {
         when(operations.exec()).thenReturn(List.of(1L, 1L, true, true));
 
         String token = service.verifyCodeAndIssueResetToken(
-                "user@example.com", CodeType.RECOVERY, "abc123");
+                "user@example.com", TipoCodigo.RECOVERY, "abc123");
 
         assertThat(token).matches("[A-Za-z0-9_-]{43}");
         verify(operations).watch(anyList());
@@ -105,7 +105,7 @@ class VerificationCodeServiceImplTest {
         when(values.get(startsWith("pagoflex:auth:attempts:"))).thenReturn("0");
         // EXEC devuelve null cuando otra solicitud modifica una clave vigilada.
         assertThatThrownBy(() -> service.verifyCodeAndIssueResetToken(
-                "user@example.com", CodeType.RECOVERY, "ABC123"))
+                "user@example.com", TipoCodigo.RECOVERY, "ABC123"))
                 .isInstanceOf(InvalidRecoveryCode.class);
         verify(operations).exec();
     }
@@ -116,7 +116,7 @@ class VerificationCodeServiceImplTest {
         when(operations.exec()).thenReturn(List.of(true, true));
 
         assertThatThrownBy(() -> service.verifyCodeAndIssueResetToken(
-                "user@example.com", CodeType.RECOVERY, "WRONG1"))
+                "user@example.com", TipoCodigo.RECOVERY, "WRONG1"))
                 .isInstanceOf(InvalidRecoveryCode.class);
         verify(values).set(startsWith("pagoflex:auth:attempts:"), eq("5"),
                 eq(Duration.ofSeconds(600)));
@@ -128,7 +128,7 @@ class VerificationCodeServiceImplTest {
         when(values.get(startsWith("pagoflex:auth:attempts:"))).thenReturn("5");
 
         assertThatThrownBy(() -> service.verifyCodeAndIssueResetToken(
-                "user@example.com", CodeType.RECOVERY, "ABC123"))
+                "user@example.com", TipoCodigo.RECOVERY, "ABC123"))
                 .isInstanceOf(InvalidRecoveryCode.class);
         verify(operations, never()).multi();
     }
@@ -136,7 +136,7 @@ class VerificationCodeServiceImplTest {
     @Test
     void rejectsInvalidExpirationBeforeStoringCode() {
         ReflectionTestUtils.setField(service, "codeExpirationMinutes", 0L);
-        assertThatThrownBy(() -> service.generateCode("user@example.com", CodeType.RECOVERY))
+        assertThatThrownBy(() -> service.generateCode("user@example.com", TipoCodigo.RECOVERY))
                 .isInstanceOf(IllegalStateException.class);
         verify(redis, never()).execute(ArgumentMatchers.<SessionCallback<Object>>any());
     }

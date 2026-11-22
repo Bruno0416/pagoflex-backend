@@ -67,6 +67,15 @@ class GatewayRoutesTest {
     }
 
     @Test
+    void conversacionesVanAMensajeria() {
+        for (String ruta : new String[]{"/api/v1/conversaciones/reportes/REP-0001",
+                "/api/v1/conversaciones/reportes/REP-0001/mensajes", "/api/v1/conversaciones/reportes/REP-0001/eventos",
+                "/api/v1/conversaciones/reportes/REP-0001/lecturas"}) {
+            assertThat(destino(ruta)).as(ruta).isEqualTo("mensajeria-service");
+        }
+    }
+
+    @Test
     void ningunaRutaInternaTieneRutaPropiaEnElGateway() {
         for (String ruta : new String[]{"/api/v1/internal/empresas/codigos/validar",
                 "/api/v1/internal/usuarios/x/hechos-pago", "/api/v1/internal/compromisos/CP-1/reportabilidad",

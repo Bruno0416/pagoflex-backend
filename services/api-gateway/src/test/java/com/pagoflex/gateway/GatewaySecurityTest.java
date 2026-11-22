@@ -58,7 +58,8 @@ class GatewaySecurityTest {
         for (String path : new String[]{"/api/v1/compromisos/me", "/api/v1/pagos/me", "/api/v1/comprobantes/CPR-000001",
                 "/api/v1/anulaciones/me", "/api/v1/cumplimiento/me", "/api/v1/empresas/me",
                 "/api/v1/empresas/me/compromisos", "/api/v1/reportes", "/api/v1/reportes/me",
-                "/api/v1/empresas/me/reportes"}) {
+                "/api/v1/empresas/me/reportes", "/api/v1/conversaciones/reportes/REP-0001",
+                "/api/v1/conversaciones/reportes/REP-0001/eventos"}) {
             mvc.perform(get(path)).andExpect(status().isUnauthorized());
         }
     }
@@ -67,7 +68,7 @@ class GatewaySecurityTest {
     void rutasInternasDeCobranzaYUsuariosNoSeExponenNiConJwt() throws Exception {
         for (String path : new String[]{"/api/v1/internal/empresas/codigos/validar",
                 "/api/v1/internal/usuarios/" + java.util.UUID.randomUUID() + "/hechos-pago",
-                "/api/v1/internal/compromisos/CP-2026-0001/reportabilidad",
+                "/api/v1/internal/compromisos/CP-2026-0001/reportabilidad", "/api/v1/internal/reportes/REP-0001/participantes",
                 "/api/v1/usuarios/internal/personas/por-rut/12345678-5"}) {
             mvc.perform(post(path).contentType("application/json").content("{}")).andExpect(status().isUnauthorized());
             mvc.perform(post(path).with(jwt()).contentType("application/json").content("{}"))

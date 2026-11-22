@@ -5,7 +5,7 @@ import com.pagoflex.usuarios.features.auth.exceptions.RutAlreadyInUse;
 import com.pagoflex.usuarios.core.security.Role;
 import com.pagoflex.usuarios.features.auth.entity.Users;
 import com.pagoflex.usuarios.features.auth.repository.UserRepository;
-import com.pagoflex.usuarios.features.internal.dto.request.CreatePersonRequest;
+import com.pagoflex.contracts.usuarios.SolicitudCrearPersonaInterna;
 import com.pagoflex.usuarios.features.internal.exceptions.PersonNotFound;
 import com.pagoflex.usuarios.features.profile.entity.Persona;
 import com.pagoflex.usuarios.features.profile.repository.PersonaRepository;
@@ -32,7 +32,7 @@ class InternalPersonServiceTest {
     @Test
     void createsPersonWithoutUserAndNormalizesRutAndEmail() {
         when(repo.saveAndFlush(any(Persona.class))).thenAnswer(inv -> inv.getArgument(0));
-        var result = service.create(new CreatePersonRequest("99.999.999-9", "Usuario", "Prueba",
+        var result = service.create(new SolicitudCrearPersonaInterna("99.999.999-9", "Usuario", "Prueba",
                 " USUARIO@EXAMPLE.COM ", "+56912345678"));
         assertThat(result.rut()).isEqualTo("99999999-9");
         assertThat(result.correoContacto()).isEqualTo("usuario@example.com");
@@ -42,14 +42,14 @@ class InternalPersonServiceTest {
     @Test
     void rejectsExistingRut() {
         when(repo.existsByRut("99999999-9")).thenReturn(true);
-        assertThatThrownBy(() -> service.create(new CreatePersonRequest("99999999-9", "Usuario", "Prueba",
+        assertThatThrownBy(() -> service.create(new SolicitudCrearPersonaInterna("99999999-9", "Usuario", "Prueba",
                 null, "+56912345678"))).isInstanceOf(RutAlreadyInUse.class);
         verify(repo, never()).saveAndFlush(any());
     }
 
     @Test
     void rejectsInvalidRut() {
-        assertThatThrownBy(() -> service.create(new CreatePersonRequest("99999999-8", "Usuario", "Prueba",
+        assertThatThrownBy(() -> service.create(new SolicitudCrearPersonaInterna("99999999-8", "Usuario", "Prueba",
                 null, "+56912345678"))).isInstanceOf(InvalidRut.class);
         verifyNoInteractions(repo);
     }
@@ -78,7 +78,7 @@ class InternalPersonServiceTest {
     @Test
     void createsPersonWithoutContactEmail() {
         when(repo.saveAndFlush(any(Persona.class))).thenAnswer(inv -> inv.getArgument(0));
-        var result = service.create(new CreatePersonRequest("99999999-9", "Usuario", "Prueba", null, "+56912345678"));
+        var result = service.create(new SolicitudCrearPersonaInterna("99999999-9", "Usuario", "Prueba", null, "+56912345678"));
         assertThat(result.correoContacto()).isNull();
         assertThat(result.idUsuario()).isNull();
     }

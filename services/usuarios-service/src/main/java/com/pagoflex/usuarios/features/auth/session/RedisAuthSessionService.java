@@ -3,6 +3,7 @@ package com.pagoflex.usuarios.features.auth.session;
 import com.pagoflex.security.CurrentUser;
 import com.pagoflex.usuarios.core.cache.RedisTransactionExecutor;
 import com.pagoflex.usuarios.core.security.JwtUtil;
+import com.pagoflex.usuarios.core.security.Role;
 import com.pagoflex.usuarios.features.auth.dto.response.AuthResponse;
 import com.pagoflex.usuarios.features.auth.entity.Users;
 import com.pagoflex.usuarios.features.auth.exceptions.InvalidSession;
@@ -46,6 +47,7 @@ public class RedisAuthSessionService implements AuthSessionService {
     // ---------- inicio de sesion ----------
     @Override
     public AuthResponse issue(Users user) {
+        Role rol = validarRolSesion(user);
         UUID sid = UUID.randomUUID();
         UUID jti = UUID.randomUUID();
         String refresh = newRefresh();
@@ -64,7 +66,7 @@ public class RedisAuthSessionService implements AuthSessionService {
             return result != null;
         });
         if (!Boolean.TRUE.equals(success)) throw new InvalidSession();
-        return response(token, refresh);
+        return response(token, refresh, rol);
     }
 
     // ---------- renovacion de tokens ----------
@@ -86,6 +88,7 @@ public class RedisAuthSessionService implements AuthSessionService {
         if (!oldHash.equals(fields[2])) throw new InvalidSession();
         UUID userId = parseUuid(fields[0]);
         Users user = users.findById(userId).orElseThrow(InvalidSession::new);
+        Role rol = validarRolSesion(user);
         UUID oldJti = parseUuid(fields[1]);
         UUID newJti = UUID.randomUUID();
         String newRefresh = newRefresh();
@@ -113,7 +116,7 @@ public class RedisAuthSessionService implements AuthSessionService {
             }
         });
         if (!Boolean.TRUE.equals(success)) throw new InvalidSession();
-        return response(newAccess, newRefresh);
+        return response(newAccess, newRefresh, rol);
     }
 
     // ---------- revocacion de sesiones ----------
@@ -141,6 +144,18 @@ public class RedisAuthSessionService implements AuthSessionService {
         // 1. invalidar el resto de sesiones antes de emitir credenciales nuevas
         revokeAll(user.getId());
         return issue(user);
+    }
+
+    private static Role validarRolSesion(Users user) {
+        if (user == null || user.getRole() == null) {
+            throw new InvalidSession();
+        }
+        if (user.getRole() != Role.USUARIO_FINAL
+                && (user.getPersona() == null
+                    || user.getPersona().getEmpresaId() == null)) {
+            throw new InvalidSession();
+        }
+        return user.getRole();
     }
 
     // --- helpers ---
@@ -197,8 +212,8 @@ public class RedisAuthSessionService implements AuthSessionService {
         return uid + "|" + jti + "|" + refreshHash;
     }
 
-    private AuthResponse response(String access, String refresh) {
-        return new AuthResponse(access, refresh, "Bearer", jwtUtil.expiresInSeconds());
+    private AuthResponse response(String access, String refresh, Role rol) {
+        return new AuthResponse(access, refresh, rol);
     }
 
     private static String sessionKey(UUID sid) { return "auth:session:" + sid; }

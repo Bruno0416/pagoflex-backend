@@ -8,6 +8,7 @@ import com.pagoflex.usuarios.features.auth.exceptions.RutAlreadyInUse;
 import com.pagoflex.usuarios.features.auth.exceptions.InvalidCredentials;
 import com.pagoflex.usuarios.features.auth.service.AuthService;
 import com.pagoflex.web.error.GlobalExceptionHandler;
+import com.pagoflex.usuarios.core.security.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -23,7 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(AuthController.class)
+@WebMvcTest(AuthControllerImpl.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler.class)
 class AuthControllerTest {
@@ -106,12 +107,15 @@ class AuthControllerTest {
     // ---------- inicio de sesion ----------
     @Test
     void loginReturnsJwt() throws Exception {
-        when(service.login(any(LoginRequest.class))).thenReturn(new AuthResponse("jwt-de-prueba", "refresh-prueba", "Bearer", 900));
+        when(service.login(any(LoginRequest.class))).thenReturn(new AuthResponse("jwt-de-prueba", "refresh-prueba", Role.USUARIO_FINAL));
 
         mvc.perform(post("/api/v1/auth/iniciar-sesion").contentType(MediaType.APPLICATION_JSON).content("""
                 {"correo":"usuario@example.com","contrasena":"contrasena123"}
                 """)).andExpect(status().isOk()).andExpect(jsonPath("$.tokenAcceso").value("jwt-de-prueba"))
-                .andExpect(jsonPath("$.tokenRenovacion").value("refresh-prueba"));
+                .andExpect(jsonPath("$.tokenRenovacion").value("refresh-prueba"))
+                .andExpect(jsonPath("$.rol").value("USUARIO_FINAL"))
+                .andExpect(jsonPath("$.tipoToken").doesNotExist())
+                .andExpect(jsonPath("$.expiraEnSegundos").doesNotExist());
     }
 
     @Test
@@ -135,12 +139,15 @@ class AuthControllerTest {
     @Test
     void refreshReturnsNewTokenPair() throws Exception {
         when(service.refresh("refresh-anterior"))
-                .thenReturn(new AuthResponse("access-nuevo", "refresh-nuevo", "Bearer", 900));
+                .thenReturn(new AuthResponse("access-nuevo", "refresh-nuevo", Role.USUARIO_FINAL));
         mvc.perform(post("/api/v1/auth/renovar").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"tokenRenovacion\":\"refresh-anterior\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tokenAcceso").value("access-nuevo"))
-                .andExpect(jsonPath("$.tokenRenovacion").value("refresh-nuevo"));
+                .andExpect(jsonPath("$.tokenRenovacion").value("refresh-nuevo"))
+                .andExpect(jsonPath("$.rol").value("USUARIO_FINAL"))
+                .andExpect(jsonPath("$.tipoToken").doesNotExist())
+                .andExpect(jsonPath("$.expiraEnSegundos").doesNotExist());
     }
 
     @Test

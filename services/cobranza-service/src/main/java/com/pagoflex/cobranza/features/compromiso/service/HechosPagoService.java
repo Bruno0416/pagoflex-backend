@@ -5,10 +5,10 @@ import com.pagoflex.cobranza.features.compromiso.entity.Compromiso;
 import com.pagoflex.cobranza.features.compromiso.entity.EstadoCompromiso;
 import com.pagoflex.cobranza.features.compromiso.entity.Pago;
 import com.pagoflex.cobranza.features.compromiso.repository.CompromisoRepository;
-import com.pagoflex.contracts.cobranza.CommitmentFact;
-import com.pagoflex.contracts.cobranza.CommitmentStatus;
-import com.pagoflex.contracts.cobranza.PaymentFact;
-import com.pagoflex.contracts.cobranza.PaymentFactsResponse;
+import com.pagoflex.contracts.cobranza.HechoCompromiso;
+import com.pagoflex.contracts.cobranza.EstadoCompromisoEvaluacion;
+import com.pagoflex.contracts.cobranza.HechoPago;
+import com.pagoflex.contracts.cobranza.RespuestaHechosPago;
 import com.pagoflex.contracts.usuarios.PersonaInterna;
 import com.pagoflex.core.error.PagoFlexException;
 import lombok.RequiredArgsConstructor;
@@ -30,27 +30,27 @@ public class HechosPagoService {
     private final Clock clock;
 
     @Transactional(readOnly = true)
-    public PaymentFactsResponse hechos(UUID usuarioId) {
+    public RespuestaHechosPago hechos(UUID usuarioId) {
         // 1. la persona de la cuenta; sin persona no hay historial que informar
         PersonaInterna persona = usuarios.porUsuario(usuarioId).orElseThrow(
                 () -> new PagoFlexException(404, "La cuenta no tiene una persona asociada"));
 
         // 2. cada compromiso con su estado efectivo a hoy y, si está pagado, su comprobante y fecha reales
         LocalDate hoy = LocalDate.now(clock);
-        List<CommitmentFact> compromisos = compromisoRepo.findDePersona(persona.id()).stream()
+        List<HechoCompromiso> compromisos = compromisoRepo.findDePersona(persona.id()).stream()
                 .map(c -> hecho(c, hoy))
                 .toList();
-        return new PaymentFactsResponse(usuarioId, OffsetDateTime.now(clock), compromisos);
+        return new RespuestaHechosPago(usuarioId, OffsetDateTime.now(clock), compromisos);
     }
 
     // --- helper privado ---
-    private CommitmentFact hecho(Compromiso c, LocalDate hoy) {
+    private HechoCompromiso hecho(Compromiso c, LocalDate hoy) {
         EstadoCompromiso estado = CompromisoMapper.estado(c, hoy);
         Pago pago = estado == EstadoCompromiso.PAGADO ? c.getPago() : null;
-        PaymentFact pagoHecho = pago == null ? null : new PaymentFact(
+        HechoPago pagoHecho = pago == null ? null : new HechoPago(
                 pago.getComprobante().getNumero(),
                 pago.getFechaHora().atZone(clock.getZone()).toOffsetDateTime());
-        return new CommitmentFact(c.getId(), c.getFolio(), c.getFechaVencimiento(),
-                CommitmentStatus.valueOf(estado.name()), pagoHecho);
+        return new HechoCompromiso(c.getId(), c.getFolio(), c.getFechaVencimiento(),
+                EstadoCompromisoEvaluacion.valueOf(estado.name()), pagoHecho);
     }
 }
