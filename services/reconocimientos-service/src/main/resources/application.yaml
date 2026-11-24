@@ -38,10 +38,7 @@ pagoflex:
     jwt:
       secret: ${JWT_SECRET}
     public-paths:
-      - /swagger-ui.html
-      - /swagger-ui/**
-      - /v3/api-docs
-      - /v3/api-docs/**
+      - /openapi/reconocimientos
       - /actuator/health
   reconocimientos:
     zona-horaria: ${RECONOCIMIENTOS_ZONA_HORARIA:America/Santiago}
@@ -60,3 +57,12 @@ management:
     web:
       exposure:
         include: health
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /openapi/reconocimientos
+  paths-to-match: /api/v1/**
+  paths-to-exclude:
+    - /api/v1/internal/**
+    - /api/v1/usuarios/internal/**

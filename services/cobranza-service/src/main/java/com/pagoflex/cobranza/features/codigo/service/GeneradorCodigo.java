@@ -1,53 +1,39 @@
 package com.pagoflex.cobranza.features.codigo.service;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 
-/// Arma códigos AA00AA-XXXXXXXXXXXXXXXXXXXXXXXXXX: prefijo público + 128 bits aleatorios en Base32 (26 caracteres).
-/// El alfabeto y la longitud son los mismos que valida SolicitudValidacionCodigoEmpresa.
 public final class GeneradorCodigo {
-    private static final String BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     private static final String LETRAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static final int BYTES_SECRETO = 16;
+    private static final String BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private GeneradorCodigo() {
     }
 
-    // formato AA00AA: identificador público para buscar el registro; no es secreto
-    public static String prefijoAleatorio() {
+    public static String codigoAleatorio() {
         return "" + letra() + letra() + RANDOM.nextInt(10) + RANDOM.nextInt(10) + letra() + letra();
     }
 
-    public static String secretoAleatorio() {
-        byte[] bytes = new byte[BYTES_SECRETO];
-        RANDOM.nextBytes(bytes);
-        return base32(bytes);
-    }
-
-    public static String armar(String prefijo, String secreto) {
-        return prefijo + "-" + secreto;
-    }
-
-    public static String prefijoDe(String codigo) {
-        return codigo.substring(0, 6);
-    }
-
-    // Base32 RFC 4648 sin relleno
-    public static String base32(byte[] datos) {
-        StringBuilder sb = new StringBuilder();
-        int buffer = 0;
-        int bits = 0;
-        for (byte b : datos) {
-            buffer = (buffer << 8) | (b & 0xff);
-            bits += 8;
-            while (bits >= 5) {
-                sb.append(BASE32.charAt((buffer >> (bits - 5)) & 31));
-                bits -= 5;
-            }
-            buffer &= (1 << bits) - 1;
+    // referencia opaca de busqueda, separada de los codigos normales y demo
+    public static String referencia(String codigo, String clave, boolean demo) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(clave.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] hash = mac.doFinal(("pagoflex:codigo:" + (demo ? "demo:" : "normal:") + codigo)
+                    .getBytes(StandardCharsets.UTF_8));
+            // se conserva la columna existente de seis caracteres; bcrypt verifica el codigo completo
+            int bits = ((hash[0] & 255) << 17) | ((hash[1] & 255) << 9)
+                    | ((hash[2] & 255) << 1) | ((hash[3] & 255) >>> 7);
+            StringBuilder referencia = new StringBuilder(demo ? "D" : "R");
+            for (int i = 20; i >= 0; i -= 5) referencia.append(BASE32.charAt((bits >>> i) & 31));
+            return referencia.toString();
+        } catch (GeneralSecurityException ex) {
+            throw new IllegalStateException("No se pudo calcular la referencia del codigo", ex);
         }
-        if (bits > 0) sb.append(BASE32.charAt((buffer << (5 - bits)) & 31));
-        return sb.toString();
     }
 
     private static char letra() {

@@ -8,6 +8,11 @@ x-healthcheck-template: &default-healthcheck
   retries: 3
   start_period: 40s
 
+# --- readiness despues de completar los application runners ---
+x-readiness-healthcheck-template: &readiness-healthcheck
+  <<: *default-healthcheck
+  test: ["CMD-SHELL", "curl --fail --silent --show-error --connect-timeout 2 --max-time 5 http://127.0.0.1:$${PORT}/actuator/health/readiness || exit 1"]
+
 services:
   db-init:
     networks:
@@ -113,7 +118,6 @@ services:
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
-    ports: [ '127.0.0.1:${EUREKA_PORT:-8761}:${EUREKA_PORT:-8761}' ]
 
   # ---- USUARIOS ----
   usuarios-service:
@@ -130,16 +134,16 @@ services:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
+      cobranza-service:
+        condition: service_healthy
     environment:
       - PORT=${USUARIOS_PORT:-8081}
       - AVATAR_STORAGE_DIR=/data/avatars
     volumes:
       - usuarios-avatars:/data/avatars
     healthcheck:
-      <<: *default-healthcheck
+      <<: *readiness-healthcheck
     networks: [ backend ]
-    ports:
-      - "${USUARIOS_PORT:-8081}:${USUARIOS_PORT:-8081}"
 
   # ---- RECONOCIMIENTOS ----
   reconocimientos-service:
@@ -161,8 +165,6 @@ services:
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
-    ports:
-      - "${RECONOCIMIENTOS_PORT:-8086}:${RECONOCIMIENTOS_PORT:-8086}"
 
   # ---- EMAIL ----
   email-service:
@@ -178,8 +180,6 @@ services:
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
-    ports:
-      - "${EMAIL_PORT:-8082}:${EMAIL_PORT:-8082}"
 
   # ---- COBRANZA ----
   cobranza-service:
@@ -194,17 +194,13 @@ services:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
-      usuarios-service:
-        condition: service_healthy
       db-init:
         condition: service_completed_successfully
     environment:
       - PORT=${COBRANZA_PORT:-8083}
     healthcheck:
-      <<: *default-healthcheck
+      <<: *readiness-healthcheck
     networks: [ backend ]
-    ports:
-      - "${COBRANZA_PORT:-8083}:${COBRANZA_PORT:-8083}"
 
   # ---- SOPORTE ----
   soporte-service:
@@ -230,8 +226,6 @@ services:
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
-    ports:
-      - "${SOPORTE_PORT:-8084}:${SOPORTE_PORT:-8084}"
 
   # ---- MENSAJERIA ----
   mensajeria-service:
@@ -257,8 +251,6 @@ services:
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
-    ports:
-      - "${MENSAJERIA_PORT:-8085}:${MENSAJERIA_PORT:-8085}"
 
 networks:
   backend:

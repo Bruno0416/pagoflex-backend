@@ -20,6 +20,31 @@ spring:
       server:
         webmvc:
           routes:
+            - id: openapi-usuarios
+              uri: lb://usuarios-service
+              predicates:
+                - Path=/openapi/usuarios
+                - Method=GET
+            - id: openapi-cobranza
+              uri: lb://cobranza-service
+              predicates:
+                - Path=/openapi/cobranza
+                - Method=GET
+            - id: openapi-soporte
+              uri: lb://soporte-service
+              predicates:
+                - Path=/openapi/soporte
+                - Method=GET
+            - id: openapi-mensajeria
+              uri: lb://mensajeria-service
+              predicates:
+                - Path=/openapi/mensajeria
+                - Method=GET
+            - id: openapi-reconocimientos
+              uri: lb://reconocimientos-service
+              predicates:
+                - Path=/openapi/reconocimientos
+                - Method=GET
             - id: usuarios-service
               uri: lb://usuarios-service
               predicates:
@@ -51,6 +76,14 @@ pagoflex:
     jwt:
       secret: ${JWT_SECRET}
     public-paths:
+      - /swagger-ui.html
+      - /swagger-ui/**
+      - /v3/api-docs/swagger-config
+      - /openapi/usuarios
+      - /openapi/cobranza
+      - /openapi/soporte
+      - /openapi/mensajeria
+      - /openapi/reconocimientos
       - /api/v1/auth/iniciar-sesion
       - /api/v1/auth/registro
       - /api/v1/auth/renovar
@@ -73,3 +106,22 @@ management:
     web:
       exposure:
         include: health
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    urls:
+      - name: Usuarios
+        url: /openapi/usuarios
+      - name: Cobranza
+        url: /openapi/cobranza
+      - name: Soporte
+        url: /openapi/soporte
+      - name: Mensajeria
+        url: /openapi/mensajeria
+      - name: Reconocimientos
+        url: /openapi/reconocimientos

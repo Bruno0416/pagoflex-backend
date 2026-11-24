@@ -9,7 +9,7 @@ public record SolicitudValidacionCodigoEmpresa(
         @Pattern(regexp = FORMATO, message = "El codigo no tiene un formato valido")
         String codigo
 ) {
-    public static final String FORMATO = "^[A-Z]{2}[0-9]{2}[A-Z]{2}-[A-Z2-7]{26}$";
+    public static final String FORMATO = "^[A-Z]{2}[0-9]{2}[A-Z]{2}$";
 
     public static boolean esValido(String codigo) {
         return codigo != null && codigo.matches(FORMATO);
