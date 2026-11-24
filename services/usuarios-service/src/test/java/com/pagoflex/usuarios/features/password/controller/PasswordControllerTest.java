@@ -31,10 +31,10 @@ class PasswordControllerTest {
         mvc.perform(put("/api/v1/usuarios/me/contrasena")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"contrasenaActual":"ClaveActual123!","nuevaContrasena":"NuevaClave123!","confirmacionContrasena":"NuevaClave123!"}
+                                {"contrasenaActual":"ClaveActual123!","nuevaContrasena":"NuevaClave123!"}
                                 """))
                 .andExpect(status().isNoContent());
-        verify(service).changePassword(new ChangePasswordRequest("ClaveActual123!", "NuevaClave123!", "NuevaClave123!"));
+        verify(service).changePassword(new ChangePasswordRequest("ClaveActual123!", "NuevaClave123!"));
     }
 
     @Test
@@ -48,12 +48,12 @@ class PasswordControllerTest {
     }
 
     @Test
-    void changeRejectsMissingConfirmation() throws Exception {
+    void changeRejectsMissingNewPassword() throws Exception {
         mvc.perform(put("/api/v1/usuarios/me/contrasena")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"contrasenaActual\":\"ClaveActual123!\",\"nuevaContrasena\":\"NuevaClave123!\"}"))
+                        .content("{\"contrasenaActual\":\"ClaveActual123!\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.invalid_fields.confirmacionContrasena").exists());
+                .andExpect(jsonPath("$.invalid_fields.nuevaContrasena").exists());
         verifyNoInteractions(service);
     }
 
@@ -61,7 +61,7 @@ class PasswordControllerTest {
     void changeRejectsWeakPassword() throws Exception {
         mvc.perform(put("/api/v1/usuarios/me/contrasena")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"contrasenaActual\":\"ClaveActual123!\",\"nuevaContrasena\":\"corta\",\"confirmacionContrasena\":\"corta\"}"))
+                        .content("{\"contrasenaActual\":\"ClaveActual123!\",\"nuevaContrasena\":\"corta\"}"))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(service);
     }

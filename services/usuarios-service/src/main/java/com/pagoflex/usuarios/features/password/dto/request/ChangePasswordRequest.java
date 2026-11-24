@@ -9,8 +9,5 @@ public record ChangePasswordRequest(
 
         @NotBlank(message = "La nueva contrasena es obligatoria")
         @StrongPassword
-        String nuevaContrasena,
-
-        @NotBlank(message = "La confirmacion de contrasena es obligatoria")
-        String confirmacionContrasena
+        String nuevaContrasena
 ) {}

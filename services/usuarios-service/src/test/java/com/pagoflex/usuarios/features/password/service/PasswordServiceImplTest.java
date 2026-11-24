@@ -61,7 +61,7 @@ class PasswordServiceImplTest {
     @Test
     void rejectsUnknownAuthenticatedUser() {
         when(userRepo.findByIdForUpdate(USER_ID)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.changePassword(new ChangePasswordRequest("Actual123!", "Nueva123!", "Nueva123!")))
+        assertThatThrownBy(() -> service.changePassword(new ChangePasswordRequest("Actual123!", "Nueva123!")))
                 .isInstanceOf(AuthenticatedUserNotFound.class)
                 .satisfies(ex -> assertThat(((PagoFlexException) ex).getStatus()).isEqualTo(401));
         verifyNoInteractions(passwordEncoder, sessions);
@@ -71,22 +71,10 @@ class PasswordServiceImplTest {
     void rejectsIncorrectCurrentPassword() {
         when(userRepo.findByIdForUpdate(USER_ID)).thenReturn(Optional.of(user("hash-actual")));
         when(passwordEncoder.matches("Incorrecta123!", "hash-actual")).thenReturn(false);
-        assertThatThrownBy(() -> service.changePassword(new ChangePasswordRequest("Incorrecta123!", "Nueva123!", "Nueva123!")))
+        assertThatThrownBy(() -> service.changePassword(new ChangePasswordRequest("Incorrecta123!", "Nueva123!")))
                 .isInstanceOf(InvalidCurrentPassword.class)
                 .satisfies(ex -> assertThat(((PagoFlexException) ex).getStatus()).isEqualTo(400));
         verify(userRepo, never()).flush();
-        verifyNoInteractions(sessions);
-    }
-
-    @Test
-    void rejectsMismatchedConfirmation() {
-        when(userRepo.findByIdForUpdate(USER_ID)).thenReturn(Optional.of(user("hash-actual")));
-        when(passwordEncoder.matches("Actual123!", "hash-actual")).thenReturn(true);
-        assertThatThrownBy(() -> service.changePassword(new ChangePasswordRequest(
-                "Actual123!", "Nueva123!", "OtraNueva123!")))
-                .isInstanceOf(com.pagoflex.core.error.FieldErrorException.class)
-                .satisfies(ex -> assertThat(((PagoFlexException) ex).getStatus()).isEqualTo(400));
-        verify(passwordEncoder, never()).encode(anyString());
         verifyNoInteractions(sessions);
     }
 
@@ -95,7 +83,7 @@ class PasswordServiceImplTest {
         when(userRepo.findByIdForUpdate(USER_ID)).thenReturn(Optional.of(user("hash-actual")));
         when(passwordEncoder.matches("Actual123!", "hash-actual")).thenReturn(true);
         when(passwordEncoder.matches("Nueva123!", "hash-actual")).thenReturn(true);
-        assertThatThrownBy(() -> service.changePassword(new ChangePasswordRequest("Actual123!", "Nueva123!", "Nueva123!")))
+        assertThatThrownBy(() -> service.changePassword(new ChangePasswordRequest("Actual123!", "Nueva123!")))
                 .isInstanceOf(PasswordReuseNotAllowed.class)
                 .satisfies(ex -> assertThat(((PagoFlexException) ex).getStatus()).isEqualTo(400));
         verify(passwordEncoder, never()).encode(anyString());
@@ -103,17 +91,17 @@ class PasswordServiceImplTest {
     }
 
     @Test
-    void updatesHashAndRevokesSessionsAfterCurrentPasswordMatch() {
+    void updatesHashWithoutRevokingSessionsAfterCurrentPasswordMatch() {
         Users user = user("hash-actual");
         when(userRepo.findByIdForUpdate(USER_ID)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("Actual123!", "hash-actual")).thenReturn(true);
         when(passwordEncoder.encode("Nueva123!")).thenReturn("hash-nuevo");
 
-        service.changePassword(new ChangePasswordRequest("Actual123!", "Nueva123!", "Nueva123!"));
+        service.changePassword(new ChangePasswordRequest("Actual123!", "Nueva123!"));
 
         assertThat(user.getPassword()).isEqualTo("hash-nuevo");
         verify(userRepo).flush();
-        verify(sessions).revokeAll(USER_ID);
+        verifyNoInteractions(sessions);
     }
 
     // --- helper ---
