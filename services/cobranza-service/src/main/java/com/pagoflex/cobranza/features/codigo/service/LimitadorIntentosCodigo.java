@@ -18,9 +18,13 @@ public class LimitadorIntentosCodigo {
     private final StringRedisTemplate redis;
 
     public boolean bloqueado(String prefijo) {
+        return bloqueado(prefijo, MAXIMO_FALLOS);
+    }
+
+    public boolean bloqueado(String prefijo, int maximoFallos) {
         try {
             String valor = redis.opsForValue().get(PREFIJO + prefijo);
-            return valor != null && Long.parseLong(valor) >= MAXIMO_FALLOS;
+            return valor != null && Long.parseLong(valor) >= maximoFallos;
         } catch (RuntimeException ex) {
             return true;
         }

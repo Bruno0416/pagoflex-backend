@@ -50,18 +50,18 @@ class OrganizationClientTest {
         UUID id = UUID.randomUUID();
         body = "{\"idEmpresa\":\"" + id
                 + "\",\"nombreEmpresa\":\"Empresa demo\",\"tipoEmpresa\":\"CLIENTE\",\"rolAutorizado\":\"EJECUTIVO\"}";
-        var response = client.validate("CL34EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+        var response = client.validate("CL34EX");
         assertThat(response.idEmpresa()).isEqualTo(id);
         assertThat(response.tipoEmpresa()).isEqualTo(TipoOrganizacion.CLIENTE);
         assertThat(response.rolAutorizado()).isEqualTo(RolAutorizado.EJECUTIVO);
         assertThat(receivedKey).isEqualTo("clave-de-servicio");
-        assertThat(receivedBody).contains("\"codigo\":\"CL34EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ\"");
+        assertThat(receivedBody).contains("\"codigo\":\"CL34EX\"");
         assertThat(receivedBody).doesNotContain("hash", "rolAutorizado");
     }
 
     @Test
     void rejectsInvalidFormatWithoutSendingHttpRequest() {
-        for (String code : new String[]{"AB1234", "AA00AA", "aa00aa-ABCDEFGHIJKLMNOPQRSTUVWXYZ", "AA00AA-SHORT", "AA00AA-ABCDEFGHIJKLMNOPQRSTUVWXY1", "  "}) {
+        for (String code : new String[]{"AB1234", "AA00A", "aa00aa-ABCDEFGHIJKLMNOPQRSTUVWXYZ", "AA00AA-SHORT", "AA00AA-ABCDEFGHIJKLMNOPQRSTUVWXY1", "  "}) {
             assertThatThrownBy(() -> client.validate(code))
                     .isInstanceOf(InvalidOrganizationCode.class);
         }
@@ -71,20 +71,20 @@ class OrganizationClientTest {
     @Test
     void rejectsInvalidCodeFromCobranza() {
         status = 401;
-        assertThatThrownBy(() -> client.validate("CL34EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+        assertThatThrownBy(() -> client.validate("CL34EX"))
                 .isInstanceOf(InvalidOrganizationCode.class);
     }
 
     @Test
     void failsClosedForUnavailableCobranza() {
         status = 503;
-        assertThatThrownBy(() -> client.validate("CL34EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+        assertThatThrownBy(() -> client.validate("CL34EX"))
                 .isInstanceOf(OrganizationServiceUnavailable.class);
     }
 
     @Test
     void rejectsIncompleteResponse() {
-        assertThatThrownBy(() -> client.validate("CL34EX-ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+        assertThatThrownBy(() -> client.validate("CL34EX"))
                 .isInstanceOf(OrganizationServiceUnavailable.class);
     }
 }

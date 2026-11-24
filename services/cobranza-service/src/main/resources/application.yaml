@@ -34,7 +34,9 @@ pagoflex:
     jwt:
       secret: ${JWT_SECRET}
     public-paths:
+      - /openapi/cobranza
       - /actuator/health
+      - /actuator/health/readiness
 
 eureka:
   client:
@@ -44,6 +46,13 @@ eureka:
     prefer-ip-address: true
 
 management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db,redis
   endpoints:
     web:
       exposure:
@@ -56,3 +65,12 @@ usuarios-service:
 reconocimientos-service:
   api:
     base-url: ${RECONOCIMIENTOS_API_URL:http://reconocimientos-service:${RECONOCIMIENTOS_PORT:8086}/api/v1/internal/reconocimientos}
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /openapi/cobranza
+  paths-to-match: /api/v1/**
+  paths-to-exclude:
+    - /api/v1/internal/**
+    - /api/v1/usuarios/internal/**

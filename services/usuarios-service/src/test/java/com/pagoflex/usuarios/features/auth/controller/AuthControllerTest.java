@@ -83,7 +83,7 @@ class AuthControllerTest {
     @Test
     void registerRejectsInvalidCompanyCodeWithFieldError() throws Exception {
         // 1. validar el contrato antes de crear cualquier cuenta
-        for (String codigo : new String[]{"CODIGO-AGENTE", "AB12A", "ab12ab", "A112AA", "AB12CD"}) {
+        for (String codigo : new String[]{"CODIGO-AGENTE", "AB12A", "ab12ab", "A112AA", "AB12CD-ABCDEFGHIJKLMNOPQRSTUVWXYZ"}) {
             mvc.perform(post("/api/v1/auth/registro").contentType(MediaType.APPLICATION_JSON)
                             .content("{\"correo\":\"usuario@example.com\",\"contrasena\":\"Clave123!\","
                                     + "\"rut\":\"99999999-9\",\"nombres\":\"Usuario\","
@@ -98,10 +98,10 @@ class AuthControllerTest {
     void registerAcceptsSecureCompanyCode() throws Exception {
         mvc.perform(post("/api/v1/auth/registro").contentType(MediaType.APPLICATION_JSON).content("""
                 {"correo":"usuario@example.com","contrasena":"Clave123!","rut":"99999999-9",
-                 "nombres":"Usuario","apellidos":"Prueba","codigoEmpresa":"PF12AG-ABCDEFGHIJKLMNOPQRSTUVWXYZ"}
+                 "nombres":"Usuario","apellidos":"Prueba","codigoEmpresa":"PF12AG"}
                 """)).andExpect(status().isCreated());
         verify(service).register(new RegisterRequest("usuario@example.com", "Clave123!", "99999999-9",
-                "Usuario", "Prueba", "PF12AG-ABCDEFGHIJKLMNOPQRSTUVWXYZ"));
+                "Usuario", "Prueba", "PF12AG"));
     }
 
     // ---------- inicio de sesion ----------

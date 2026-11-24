@@ -15,6 +15,8 @@ public interface CodigoRegistroService {
     /// Genera un código de ejecutivo para una empresa cliente existente
     String generarParaEjecutivo(UUID empresaId, Instant expiraEn);
 
-    /// Revoca el código con ese prefijo
-    void revocar(String prefijo);
+    void aprovisionarDemo(String empresa);
+
+    /// Revoca el codigo de registro indicado
+    void revocar(String codigo);
 }

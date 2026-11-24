@@ -12,8 +12,8 @@ import lombok.Setter;
 import java.time.Instant;
 import java.util.UUID;
 
-/// Código privado de registro de agentes y ejecutivos. Nunca guarda el código: solo su prefijo público
-/// (para buscarlo) y el hash BCrypt del código completo. No es el identificador público EmpresaCliente.codigo
+/// codigo privado de registro; guarda una referencia HMAC de busqueda y el hash BCrypt
+/// no es el identificador publico EmpresaCliente.codigo
 @Getter
 @Setter
 @Builder

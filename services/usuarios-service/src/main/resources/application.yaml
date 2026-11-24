@@ -47,10 +47,7 @@ pagoflex:
       expiration: ${JWT_EXPIRATION}
       refresh-expiration: ${JWT_REFRESH_EXPIRATION:7d}
     public-paths:
-      - /swagger-ui.html
-      - /swagger-ui/**
-      - /v3/api-docs
-      - /v3/api-docs/**
+      - /openapi/usuarios
       - /api/v1/auth/iniciar-sesion
       - /api/v1/auth/registro
       - /api/v1/auth/renovar
@@ -59,6 +56,7 @@ pagoflex:
       - /api/v1/auth/recuperacion/reenviar
       - /api/v1/auth/recuperacion/restablecer
       - /actuator/health
+      - /actuator/health/readiness
 
 verification:
   code:
@@ -82,7 +80,23 @@ eureka:
     prefer-ip-address: true
 
 management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db,redis
   endpoints:
     web:
       exposure:
         include: health
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /openapi/usuarios
+  paths-to-match: /api/v1/**
+  paths-to-exclude:
+    - /api/v1/internal/**
+    - /api/v1/usuarios/internal/**

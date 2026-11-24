@@ -112,12 +112,11 @@ class CodigoRegistroTest {
     void elCodigoNoSeGuardaEnTextoPlanoSinoComoHashBcrypt() {
         String codigo = service.generarParaAgente(null);
 
-        CodigoRegistro guardado = codigoRepo.findByPrefijo(GeneradorCodigo.prefijoDe(codigo)).orElseThrow();
-        String secreto = codigo.substring(7);
-        assertThat(guardado.getHash()).startsWith("$2").doesNotContain(codigo).doesNotContain(secreto);
+        CodigoRegistro guardado = codigoRepo.findByPrefijo(GeneradorCodigo.referencia(codigo, CLAVE_INTERNA, false)).orElseThrow();
+        assertThat(guardado.getHash()).startsWith("$2").doesNotContain(codigo);
         assertThat(encoder.matches(codigo, guardado.getHash())).isTrue();
         assertThat(codigoRepo.findAll()).allSatisfy(c ->
-                assertThat(c.getPrefijo()).hasSize(6).matches("[A-Z]{2}[0-9]{2}[A-Z]{2}"));
+                assertThat(c.getPrefijo()).hasSize(6).matches("R[A-Z2-7]{5}").isNotEqualTo(codigo));
     }
 
     @Test
@@ -125,7 +124,7 @@ class CodigoRegistroTest {
         String uno = service.generarParaAgente(null);
         String otro = service.generarParaAgente(null);
 
-        assertThat(uno).isNotEqualTo(otro).matches("^[A-Z]{2}[0-9]{2}[A-Z]{2}-[A-Z2-7]{26}$");
+        assertThat(uno).isNotEqualTo(otro).matches("^[A-Z]{2}[0-9]{2}[A-Z]{2}$");
         assertThat(codigoRepo.count()).isEqualTo(2);
     }
 
@@ -139,7 +138,7 @@ class CodigoRegistroTest {
     // ---------- rechazos ----------
     @Test
     void formatoInvalidoSeRechazaConBadRequest() throws Exception {
-        for (String codigo : new String[]{"AB12CD", "AB12CD-CORTO", "ab12cd-ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        for (String codigo : new String[]{"AB12C", "AB12CD-CORTO", "ab12cd-ABCDEFGHIJKLMNOPQRSTUVWXYZ",
                 "AB12CD-ABCDEFGHIJKLMNOPQRSTUVWX01", "AB12CD-ABCDEFGHIJKLMNOPQRSTUVWXYZ1", " "}) {
             mvc.perform(validar(codigo)).andExpect(status().isBadRequest());
         }
@@ -149,11 +148,11 @@ class CodigoRegistroTest {
 
     @Test
     void inexistenteIncorrectoRevocadoYExpiradoResponden404Igual() throws Exception {
-        String inexistente = "ZZ99ZZ-" + GeneradorCodigo.secretoAleatorio();
+        String inexistente = "ZZ99ZZ";
         String valido = service.generarParaEjecutivo(empresaAltos, null);
-        String incorrecto = GeneradorCodigo.prefijoDe(valido) + "-" + GeneradorCodigo.secretoAleatorio();
+        String incorrecto = valido.equals("ZZ99ZY") ? "ZZ99ZX" : "ZZ99ZY";
         String revocado = service.generarParaEjecutivo(empresaAltos, null);
-        service.revocar(GeneradorCodigo.prefijoDe(revocado));
+        service.revocar(revocado);
         String expirado = service.generarParaEjecutivo(empresaAltos, PASADO);
 
         // misma respuesta (el timestamp del error es lo único que cambia)
@@ -199,10 +198,10 @@ class CodigoRegistroTest {
     @Test
     void laRespuestaNoIncluyeHashesNiElSecreto() throws Exception {
         String codigo = service.generarParaAgente(null);
-        String hash = codigoRepo.findByPrefijo(GeneradorCodigo.prefijoDe(codigo)).orElseThrow().getHash();
+        String hash = codigoRepo.findByPrefijo(GeneradorCodigo.referencia(codigo, CLAVE_INTERNA, false)).orElseThrow().getHash();
 
         String cuerpo = mvc.perform(validar(codigo)).andReturn().getResponse().getContentAsString();
-        assertThat(cuerpo).doesNotContain(hash).doesNotContain(codigo.substring(7)).doesNotContain("hash");
+        assertThat(cuerpo).doesNotContain(hash).doesNotContain(codigo).doesNotContain("hash");
     }
 
     // --- helpers ---
@@ -213,8 +212,8 @@ class CodigoRegistroTest {
 
     // inserta un registro con hash válido pero con una combinación que el generador nunca produce
     private String guardarManual(TipoOrganizacion tipo, RolAutorizado rol, UUID empresaId) {
-        String prefijo = GeneradorCodigo.prefijoAleatorio();
-        String codigo = GeneradorCodigo.armar(prefijo, GeneradorCodigo.secretoAleatorio());
+        String codigo = GeneradorCodigo.codigoAleatorio();
+        String prefijo = GeneradorCodigo.referencia(codigo, CLAVE_INTERNA, false);
         codigoRepo.save(CodigoRegistro.builder().prefijo(prefijo).hash(encoder.encode(codigo)).empresaId(empresaId)
                 .tipo(tipo).rol(rol).activo(true).creadoEn(Instant.now()).build());
         return codigo;

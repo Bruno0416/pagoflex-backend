@@ -34,6 +34,7 @@ pagoflex:
     jwt:
       secret: ${JWT_SECRET}
     public-paths:
+      - /openapi/soporte
       - /actuator/health
 
 cobranza-service:
@@ -57,3 +58,12 @@ management:
     web:
       exposure:
         include: health
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /openapi/soporte
+  paths-to-match: /api/v1/**
+  paths-to-exclude:
+    - /api/v1/internal/**
+    - /api/v1/usuarios/internal/**
