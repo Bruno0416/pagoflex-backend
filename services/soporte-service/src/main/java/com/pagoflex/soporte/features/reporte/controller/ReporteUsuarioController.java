@@ -12,7 +12,9 @@ import com.pagoflex.soporte.features.reporte.service.ReporteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 /// Reportes del usuario final sobre sus cobros
@@ -42,5 +44,12 @@ public class ReporteUsuarioController {
     @GetMapping("/me/{numero}")
     public ResponseEntity<ReporteResponse> miReporte(@PathVariable String numero) {
         return ResponseEntity.ok(service.miReporte(CurrentUser.id(), numero));
+    }
+
+    @Operation(summary = "Adjuntar la foto del comprobante de pago (JPEG o PNG, hasta 5 MB)")
+    @PutMapping(value = "/me/{numero}/comprobante", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ReporteResponse> subirComprobante(@PathVariable String numero,
+                                                            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(service.subirComprobante(CurrentUser.id(), numero, file));
     }
 }

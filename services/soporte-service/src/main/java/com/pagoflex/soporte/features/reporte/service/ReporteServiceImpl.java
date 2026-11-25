@@ -24,6 +24,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.pagoflex.soporte.features.reporte.storage.ComprobanteStorage;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -38,6 +41,7 @@ public class ReporteServiceImpl implements ReporteService {
     private final ReporteRepository repository;
     private final CobranzaServiceClient cobranza;
     private final Clock clock;
+    private final ComprobanteStorage comprobantes;
 
     // ---------- usuario final ----------
     @Override
@@ -101,6 +105,18 @@ public class ReporteServiceImpl implements ReporteService {
         return ReporteMapper.toResponse(reporte, hoy());
     }
 
+    @Override
+    @Transactional
+    public ReporteResponse subirComprobante(UUID usuarioId, String numero, MultipartFile archivo) {
+        Reporte reporte = buscar(numero);
+        if (!reporte.getUsuarioId().equals(usuarioId)) {
+            throw new ReporteNoEncontrado(numero);
+        }
+        // si ya había uno lo reemplaza
+        reporte.setComprobante(comprobantes.guardar(archivo));
+        return ReporteMapper.toResponse(reporte, hoy());
+    }
+
     // ---------- agente de soporte ----------
     @Override
     @Transactional(readOnly = true)
@@ -123,6 +139,17 @@ public class ReporteServiceImpl implements ReporteService {
             throw new ReporteNoEncontrado(numero);
         }
         return ReporteMapper.toResponse(reporte, hoy());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ComprobanteStorage.Archivo comprobante(UUID agenteId, String numero) {
+        // mismas reglas que el detalle: abiertos o los del propio agente
+        Reporte reporte = buscar(numero);
+        if (reporte.getEstado() != EstadoReporte.ABIERTO && !agenteId.equals(reporte.getAgenteId())) {
+            throw new ReporteNoEncontrado(numero);
+        }
+        return comprobantes.leer(reporte.getComprobante());
     }
 
     @Override
