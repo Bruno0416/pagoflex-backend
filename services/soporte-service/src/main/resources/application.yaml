@@ -19,12 +19,21 @@ spring:
     password: ${SOPORTE_PASS}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
   jpa:
     hibernate:
       ddl-auto: update
     open-in-view: false
 
 pagoflex:
+  # fotos de comprobante, igual que los avatares de usuarios
+  storage:
+    comprobantes:
+      path: ${COMPROBANTE_STORAGE_DIR:./data/comprobantes}
   zona-horaria: America/Santiago
   # datos de ejemplo del anexo 9 para probar la app conectada
   demo:

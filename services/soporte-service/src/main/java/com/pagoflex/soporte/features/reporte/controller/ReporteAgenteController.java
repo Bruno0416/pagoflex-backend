@@ -12,6 +12,8 @@ import com.pagoflex.soporte.features.reporte.entity.EstadoReporte;
 import com.pagoflex.soporte.features.reporte.service.ReporteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import com.pagoflex.soporte.features.reporte.storage.ComprobanteStorage;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,6 +40,13 @@ public class ReporteAgenteController {
     @GetMapping("/{numero}")
     public ResponseEntity<ReporteResponse> detalle(@PathVariable String numero) {
         return ResponseEntity.ok(service.detalle(CurrentUser.id(), numero));
+    }
+
+    @Operation(summary = "Ver la foto del comprobante que adjuntó la usuaria")
+    @GetMapping("/{numero}/comprobante")
+    public ResponseEntity<byte[]> comprobante(@PathVariable String numero) {
+        ComprobanteStorage.Archivo archivo = service.comprobante(CurrentUser.id(), numero);
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(archivo.tipo())).body(archivo.datos());
     }
 
     @Operation(summary = "Tomar el reporte (ABIERTO → ASIGNADO)")

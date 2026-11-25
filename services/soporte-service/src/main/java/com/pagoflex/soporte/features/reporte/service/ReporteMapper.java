@@ -34,7 +34,8 @@ public final class ReporteMapper {
                 r.getHistorial().stream()
                         .map(h -> new ReporteResponse.CambioEstadoResponse(h.getEstadoAnterior(), h.getEstadoNuevo(),
                                 h.getActorCorreo(), h.getFecha()))
-                        .toList()
+                        .toList(),
+                r.getComprobante() != null
         );
     }
 }

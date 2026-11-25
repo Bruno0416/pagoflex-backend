@@ -22,6 +22,9 @@ eureka:
     enabled: false
 
 pagoflex:
+  storage:
+    comprobantes:
+      path: target/comprobantes-test
   security:
     internal-api-key: test-only-internal-api-key
     jwt:

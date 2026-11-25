@@ -22,7 +22,8 @@ public record ReporteResponse(
         LocalDateTime fechaAtencion,
         String respuesta,
         LocalDateTime fechaResolucion,
-        List<CambioEstadoResponse> historial
+        List<CambioEstadoResponse> historial,
+        boolean tieneComprobante
 ) {
     public record CobroResponse(String empresa, String concepto, Integer numeroCuota, Integer totalCuotas,
                                 long total, LocalDate fechaVencimiento, String estado) {

@@ -42,6 +42,10 @@ public class Reporte {
     @Column(name = "comentario", length = 500)
     private String comentario;
 
+    /// nombre del archivo de la foto del comprobante de pago, si la usuaria la subió
+    @Column(name = "comprobante", length = 60)
+    private String comprobante;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false, columnDefinition = "varchar(20)")
     private EstadoReporte estado;

@@ -223,6 +223,9 @@ services:
         condition: service_completed_successfully
     environment:
       - PORT=${SOPORTE_PORT:-8084}
+      - COMPROBANTE_STORAGE_DIR=/data/comprobantes
+    volumes:
+      - soporte-comprobantes:/data/comprobantes
     healthcheck:
       <<: *default-healthcheck
     networks: [ backend ]
@@ -259,3 +262,4 @@ networks:
 volumes:
   mysql-data:
   usuarios-avatars:
+  soporte-comprobantes:
